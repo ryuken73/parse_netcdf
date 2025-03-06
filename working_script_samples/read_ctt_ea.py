@@ -4,7 +4,7 @@ from pyproj import Proj
 import json
 
 # NetCDF 파일 열기
-file_path = r"D:\002.Code\099.study\deck.gl.test\src\bigfiles\ctps_ea_lc_202502170000.nc"
+file_path = r"ctps_ea_lc_202502170000.nc"
 ds = nc.Dataset(file_path, "r")
 
 # CTT 데이터 읽기 (원래 ushort 값, 자동 스케일링 비활성화)
@@ -53,7 +53,7 @@ lon_grid, lat_grid = proj(easting_grid, northing_grid, inverse=True)
 # 데이터 리스트 생성: [[lon, lat, ctt_value], ...]
 # _FillValue(65535) 제외, step=3으로 샘플링
 result = []
-step = 2
+step = 5
 for y in range(0, dim_y, step):  # 3칸 간격
     for x in range(0, dim_x, step):  # 3칸 간격
         ctt_value = ctt_values[y, x]

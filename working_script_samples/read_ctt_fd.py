@@ -60,7 +60,7 @@ def latlon_from_geos(Line, Column, sub_lon, coff, cfac, loff, lfac):
 
 # 결과 리스트 초기화
 result = []
-step = 5  # 샘플링 간격 (초기 버전 요청에 따라 10으로 설정)
+step = 10  # 샘플링 간격 (초기 버전 요청에 따라 10으로 설정)
 
 # 각 픽셀에 대해 위도/경도 변환 및 CTT 데이터 추출
 for y in range(0, dim_y, step):

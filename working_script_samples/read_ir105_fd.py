@@ -34,14 +34,14 @@ print(f"Adjusted ground_sample_distance: {ground_sample_distance} m, resolution_
 
 # GEOS 좌표를 WGS84 위도/경도로 변환하는 함수
 def latlon_from_geos(Line, Column, sub_lon, coff, cfac, loff, lfac):
-    print(Line, Column, sub_lon, coff, cfac, loff, lfac)
+    # print(Line, Column, sub_lon, coff, cfac, loff, lfac)
     degtorad = 3.14159265358979 / 180.0
     x = degtorad * ((Column - coff) * 2**16 / cfac)  # resolution_factor 제거
     y = degtorad * ((dim_y - Line - 1 - loff) * 2**16 / lfac)  # 행 좌표 뒤집기
     # 일부 로그만 출력 (처음 50x50 범위 내에서만)
-    print(f"Line={Line}, Column={Column}, x={x}, y={y}")
-    if Line < 50 and Column < 50:
-        print(f"x = {x}, y = {y} at (Line={Line}, Column={Column})")
+    # print(f"Line={Line}, Column={Column}, x={x}, y={y}")
+    # if Line < 50 and Column < 50:
+    #     print(f"x = {x}, y = {y} at (Line={Line}, Column={Column})")
     Sd = np.sqrt((42164.0 * np.cos(x) * np.cos(y))**2 - (np.cos(y)**2 + 1.006739501 * np.sin(y)**2) * 1737122264)
     if Sd < 0:  # 무효값 방지 및 디버깅
         print(f"Sd negative: {Sd} at (x={x}, y={y}, Line={Line}, Column={Column})")

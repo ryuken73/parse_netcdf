@@ -48,7 +48,7 @@ easting_grid, northing_grid = np.meshgrid(easting, northing)
 lon_grid, lat_grid = proj(easting_grid, northing_grid, inverse=True)
 
 # 데이터 리스트 생성: [[lon, lat, image_pixel_value], ...]
-step = 10 
+step = 5 
 result = []
 for y in range(0, dim_y, step):
     for x in range(0, dim_x, step):
