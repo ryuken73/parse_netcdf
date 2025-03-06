@@ -1,0 +1,6 @@
+binfiles
+ncfiles
+old_results
+*.nc
+*.json
+*.pyc
