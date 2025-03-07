@@ -74,15 +74,15 @@ def get_params_lc(file_path, var_name, grid_mapping):
 def latlon_from_lc(projAttrs: ProjectionAttributesLC):
    # LCC 투영 정의
   proj = Proj(
-      proj="lcc",
-      lat_1=projAttrs.standard_parallel1,
-      lat_2=projAttrs.standard_parallel2,
-      lat_0=projAttrs.origin_latitude,
-      lon_0=projAttrs.central_meridian,
-      x_0=projAttrs.false_easting,
-      y_0=projAttrs.false_northing,
-      units="m",
-      ellps="WGS84"
+    proj="lcc",
+    lat_1=projAttrs.standard_parallel1,
+    lat_2=projAttrs.standard_parallel2,
+    lat_0=projAttrs.origin_latitude,
+    lon_0=projAttrs.central_meridian,
+    x_0=projAttrs.false_easting,
+    y_0=projAttrs.false_northing,
+    units="m",
+    ellps="WGS84"
   )
 
   # 각 픽셀의 easting, northing 좌표 계산
@@ -121,18 +121,44 @@ def get_params_geos(file_path, var_name, grid_mapping):
 
   # GEOS 투영 파라미터 (gk2a_imager_projection 변수에서 추출)
   projection = ds
+  attr_map_key = 'from_global_attrs'
   if grid_mapping != None:
     projection = ds.variables[grid_mapping]
-  sub_lon_deg = projection.getncattr('longitude_of_projection_origin')  # 위성 경도 (도 단위)
-  sub_lon = sub_lon_deg * math.pi / 180.0  # 도를 라디안으로 변환
-  H = projection.perspective_point_height / 1000.0     # 위성 높이 (km 단위로 변환)
-  a = projection.getncattr('semi_major_axis')          # 지구 적도 반지름 (미터)
-  b = projection.getncattr('semi_minor_axis')          # 지구 극 반지름 (미터)
-  cfac = projection.getncattr('column_scale_factor')   # 열 방향 계수
-  lfac = projection.getncattr('line_scale_factor')     # 행 방향 계수
-  coff = projection.getncattr('column_offset')         # 열 중심
-  loff = projection.getncattr('line_offset')           # 행 중심
-  print(f"sub_lon (deg): {sub_lon_deg}, sub_lon (rad): {sub_lon}, H: {H} km, a: {a} m, b: {b} m, cfac: {cfac}, lfac: {lfac}, coff: {coff}, loff: {loff}")
+    attr_map_key = 'from_gk2a_imager_projection_attrs'
+
+  attr_map = {
+    'from_global_attrs': {
+      'sub_lon': 'sub_longitude',
+      'H': 'nominal_satellite_height',
+      'a': 'earth_equatorial_radius',
+      'b': 'earth_polar_radius',
+      'cfac': 'cfac',
+      'lfac': 'lfac',
+      'coff': 'coff',
+      'loff': 'loff',
+    },
+    'from_gk2a_imager_projection_attrs': {
+      'sub_lon': 'longitude_of_projection_origin',
+      'H': 'perspective_point_height',
+      'a': 'semi_major_axis',
+      'b': 'semi_minor_axis',
+      'cfac': 'column_scale_factor',
+      'lfac': 'line_scale_factor',
+      'coff': 'column_offset',
+      'loff': 'line_offset',
+    }
+  }
+  sub_lon = projection.getncattr(attr_map[attr_map_key]['sub_lon'])
+  if grid_mapping != None:
+    sub_lon = projection.getncattr(attr_map[attr_map_key]['sub_lon']) * math.pi / 180.0  # 위성 경도, 도를 라디안으로 변환
+  H = projection.getncattr(attr_map[attr_map_key]['H']) / 1000.0 # 위성 높이 (km 단위로 변환)
+  a = projection.getncattr(attr_map[attr_map_key]['a'])          # 지구 적도 반지름 (미터)
+  b = projection.getncattr(attr_map[attr_map_key]['b'])          # 지구 극 반지름 (미터)
+  cfac = projection.getncattr(attr_map[attr_map_key]['cfac'])    # 열 방향 계수
+  lfac = projection.getncattr(attr_map[attr_map_key]['lfac'])    # 행 방향 계수
+  coff = projection.getncattr(attr_map[attr_map_key]['coff'])    # 열 중심
+  loff = projection.getncattr(attr_map[attr_map_key]['loff'])    # 행 중심
+  print(f"sub_lon (rad): {sub_lon}, H: {H} km, a: {a} m, b: {b} m, cfac: {cfac}, lfac: {lfac}, coff: {coff}, loff: {loff}")
   projAttrs = ProjectionAttributesGE(
     sub_lon,
     H,
@@ -218,14 +244,15 @@ def show_plot(lons, lats, attr_values, nc_coverage, plot_title):
   plt.title(plot_title)
   plt.show()
 
-
+def mk_out_file_name(nc_file, step, out_dir):
+  basename = Path(nc_file).stem
+  nc_coverage = basename.split('_')[1]
+  out_file = f"{out_dir}/{basename}_step{step}.json"
+  return out_file, nc_coverage
 
 if __name__ == '__main__' :
   step = 10
-  basename = Path(nc_file).stem
-  nc_coverage = basename.split('_')[1]
   out_dir = './jsonfiles'
-  out_file = f"{out_dir}/{basename}_step{step}.json"
   parseResult = []
   GRID_MAPPING = {
     "ctps": 'gk2a_imager_projection', # if data is ctps, grid_mapping = gk2a_imager_projection
@@ -233,23 +260,32 @@ if __name__ == '__main__' :
   }
 
   # test ctps fd
-  # nc_file = './working_script_samples/ctps_fd_ge_202502170000.nc'
   # attr_to_get = 'CTT'
-  # attr_raw, dim_x, dim_y, projAttrs = get_params_geos(nc_file, attr_to_get, GRID_MAPPING.ctps)
+  # nc_file = './working_script_samples/ctps_fd_ge_202502170000.nc'
+  # out_file, nc_coverage = mk_out_file_name(nc_file, step, out_dir)
+  # attr_raw, dim_x, dim_y, projAttrs = get_params_geos(nc_file, attr_to_get, GRID_MAPPING.get('ctps', None))
   # parseResult = parseGeos(step, dim_x, dim_y, attr_raw, projAttrs)
 
   # test ctps lc
-  # nc_file = './working_script_samples/ctps_ea_lc_202502170000.nc'
   # attr_to_get = 'CTT'
+  # nc_file = './working_script_samples/ctps_ea_lc_202502170000.nc'
+  # out_file, nc_coverage = mk_out_file_name(nc_file, step, out_dir)
   # attr_raw, dim_x, dim_y, projAttrs = get_params_lc(nc_file, attr_to_get, GRID_MAPPING.get('ctps', None))
   # parseResult = parseLc(step, dim_x, dim_y, attr_raw, projAttrs)
 
   # test ri105 ea
-  nc_file = './working_script_samples/ir105_ea_lc_202502170000.nc'
   attr_to_get = 'image_pixel_values' # for ri105
+  nc_file = './working_script_samples/ir105_ea_lc_202502170000.nc'
+  out_file, nc_coverage = mk_out_file_name(nc_file, step, out_dir)
   attr_raw, dim_x, dim_y, projAttrs = get_params_lc(nc_file, attr_to_get, GRID_MAPPING.get('ir105', None))
-  print(projAttrs.central_meridian, projAttrs.upper_left_easting)
   parseResult = parseLc(step, dim_x, dim_y, attr_raw, projAttrs)
+
+  # test ri105 fd
+  # attr_to_get = 'image_pixel_values' # for ri105
+  # nc_file = './working_script_samples/ir105_fd_ge_202502170000.nc'
+  # out_file, nc_coverage = mk_out_file_name(nc_file, step, out_dir)
+  # attr_raw, dim_x, dim_y, projAttrs = get_params_geos(nc_file, attr_to_get, GRID_MAPPING.get('ir105', None))
+  # parseResult = parseGeos(step, dim_x, dim_y, attr_raw, projAttrs)
 
   print("parse result Done:", len(parseResult))
 
