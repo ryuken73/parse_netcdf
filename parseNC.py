@@ -105,7 +105,7 @@ def parseLc(step, dim_x, dim_y, attr_raw, projAttrs):
 
 
 
-def get_params_geos(file_path, var_name, projection_name='gk2a_imager_projection'):
+def get_params_geos(file_path, var_name, grid_mapping='gk2a_imager_projection'):
   # NetCDF 파일 열기
   ds = nc.Dataset(file_path, 'r')
 
@@ -116,7 +116,7 @@ def get_params_geos(file_path, var_name, projection_name='gk2a_imager_projection
   print(f"{var_name} shape:", attr_raw.shape)
 
   # GEOS 투영 파라미터 (gk2a_imager_projection 변수에서 추출)
-  projection = ds.variables[projection_name]
+  projection = ds.variables[grid_mapping]
   sub_lon_deg = projection.getncattr('longitude_of_projection_origin')  # 위성 경도 (도 단위)
   sub_lon = sub_lon_deg * math.pi / 180.0  # 도를 라디안으로 변환
   H = projection.perspective_point_height / 1000.0     # 위성 높이 (km 단위로 변환)
@@ -227,8 +227,8 @@ if __name__ == '__main__' :
 
   # test ctps fd
   attr_to_get = 'CTT'
-  projection_name='gk2a_imager_projection'
-  attr_raw, dim_x, dim_y, projAttrs = get_params_geos(nc_file, attr_to_get, projection_name)
+  grid_mapping='gk2a_imager_projection'
+  attr_raw, dim_x, dim_y, projAttrs = get_params_geos(nc_file, attr_to_get, grid_mapping)
   parseResult = parseGeos(step, dim_x, dim_y, attr_raw, projAttrs)
 
   # test ri105, ctps ea
