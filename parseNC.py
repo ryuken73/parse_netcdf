@@ -38,40 +38,44 @@ _PLOT_BOUND = {
 }
 
 def get_params_lc(file_path, var_name, grid_mapping):
-  ds = nc.Dataset(file_path, 'r')
+  try :
+    print('open file:', file_path)
+    ds = nc.Dataset(file_path, 'r')
 
-  attr_raw = ds.variables[var_name][:]
-  dim_y, dim_x = attr_raw.shape
-  print(f"{var_name} shape:", attr_raw.shape)
+    attr_raw = ds.variables[var_name][:]
+    dim_y, dim_x = attr_raw.shape
+    print(f"{var_name} shape:", attr_raw.shape)
 
-  projection = ds
-  if grid_mapping != None:
-    projection = ds.variables[grid_mapping]
+    projection = ds
+    if grid_mapping != None:
+      projection = ds.variables[grid_mapping]
 
-  # 투영 정보 가져오기 (LCC)
-  central_meridian = projection.getncattr("central_meridian")  # 126.0
-  standard_parallel1 = projection.getncattr("standard_parallel1")  # 30.0
-  standard_parallel2 = projection.getncattr("standard_parallel2")  # 60.0
-  origin_latitude = projection.getncattr("origin_latitude")  # 38.0
-  false_easting = projection.getncattr("false_easting")  # 0.0
-  false_northing = projection.getncattr("false_northing")  # 0.0
-  pixel_size = projection.getncattr("pixel_size")  # 2000.0 (미터 단위)
-  upper_left_easting = projection.getncattr("upper_left_easting")  # -2999000.0
-  upper_left_northing = projection.getncattr("upper_left_northing")  # 2599000.0
-  projAttrs = ProjectionAttributesLC(
-    central_meridian,
-    standard_parallel1,
-    standard_parallel2,
-    origin_latitude,
-    false_easting,
-    false_northing,
-    pixel_size,
-    upper_left_easting,
-    upper_left_northing
-  )
-  return attr_raw, dim_x, dim_y, projAttrs
+    # 투영 정보 가져오기 (LCC)
+    central_meridian = projection.getncattr("central_meridian")  # 126.0
+    standard_parallel1 = projection.getncattr("standard_parallel1")  # 30.0
+    standard_parallel2 = projection.getncattr("standard_parallel2")  # 60.0
+    origin_latitude = projection.getncattr("origin_latitude")  # 38.0
+    false_easting = projection.getncattr("false_easting")  # 0.0
+    false_northing = projection.getncattr("false_northing")  # 0.0
+    pixel_size = projection.getncattr("pixel_size")  # 2000.0 (미터 단위)
+    upper_left_easting = projection.getncattr("upper_left_easting")  # -2999000.0
+    upper_left_northing = projection.getncattr("upper_left_northing")  # 2599000.0
+    projAttrs = ProjectionAttributesLC(
+      central_meridian,
+      standard_parallel1,
+      standard_parallel2,
+      origin_latitude,
+      false_easting,
+      false_northing,
+      pixel_size,
+      upper_left_easting,
+      upper_left_northing
+    )
+    return attr_raw, dim_x, dim_y, projAttrs
+  except Exception as e:
+    print(e)
 
-def latlon_from_lc(projAttrs: ProjectionAttributesLC):
+def latlon_from_lc(projAttrs: ProjectionAttributesLC, dim_x, dim_y):
    # LCC 투영 정의
   proj = Proj(
     proj="lcc",
@@ -95,7 +99,7 @@ def latlon_from_lc(projAttrs: ProjectionAttributesLC):
 
 def parseLc(step, dim_x, dim_y, attr_raw, projAttrs):
   print("start parseLc: prams =", step, dim_x, dim_y)
-  lon_grid, lat_grid = latlon_from_lc(projAttrs)
+  lon_grid, lat_grid = latlon_from_lc(projAttrs, dim_x, dim_y)
   result = []
   for y in range(0, dim_y, step):
     for x in range(0, dim_x, step):
@@ -225,7 +229,7 @@ def desctruct_att_lat_lon(attr_with_lat_lon):
   attr_values = [point[2] for point in attr_with_lat_lon]
   return lons, lats, attr_values
 
-def print_result(lons, lats, attr_values):
+def print_result(lons, lats, attr_values, attr_to_get):
   print("Longitude 범위:", min(lons) if lons else "No valid points", "to", max(lons) if lons else "No valid points")
   print("Latitude 범위:", min(lats) if lats else "No valid points", "to", max(lats) if lats else "No valid points")
   print(f"{attr_to_get} 범위:", min(attr_values) if attr_values else "No valid points", "to", max(attr_values) if attr_values else "No valid points")
@@ -250,14 +254,15 @@ def mk_out_file_name(nc_file, step, out_dir):
   out_file = f"{out_dir}/{basename}_step{step}.json"
   return out_file, nc_coverage
 
-if __name__ == '__main__' :
-  step = 10
-  out_dir = './jsonfiles'
-  parseResult = []
-  GRID_MAPPING = {
-    "ctps": 'gk2a_imager_projection', # if data is ctps, grid_mapping = gk2a_imager_projection
-    "ir105": None
-  }
+GRID_MAPPING = {
+  "ctps": 'gk2a_imager_projection', # if data is ctps, grid_mapping = gk2a_imager_projection
+  "ir105": None
+}
+
+# if __name__ == '__main__' :
+#   step = 10
+#   out_dir = './jsonfiles'
+#   parseResult = []
 
   # test ctps fd
   # attr_to_get = 'CTT'
@@ -274,11 +279,11 @@ if __name__ == '__main__' :
   # parseResult = parseLc(step, dim_x, dim_y, attr_raw, projAttrs)
 
   # test ri105 ea
-  attr_to_get = 'image_pixel_values' # for ri105
-  nc_file = './working_script_samples/ir105_ea_lc_202502170000.nc'
-  out_file, nc_coverage = mk_out_file_name(nc_file, step, out_dir)
-  attr_raw, dim_x, dim_y, projAttrs = get_params_lc(nc_file, attr_to_get, GRID_MAPPING.get('ir105', None))
-  parseResult = parseLc(step, dim_x, dim_y, attr_raw, projAttrs)
+  # attr_to_get = 'image_pixel_values' # for ri105
+  # nc_file = './working_script_samples/ir105_ea_lc_202502170000.nc'
+  # out_file, nc_coverage = mk_out_file_name(nc_file, step, out_dir)
+  # attr_raw, dim_x, dim_y, projAttrs = get_params_lc(nc_file, attr_to_get, GRID_MAPPING.get('ir105', None))
+  # parseResult = parseLc(step, dim_x, dim_y, attr_raw, projAttrs)
 
   # test ri105 fd
   # attr_to_get = 'image_pixel_values' # for ri105
@@ -287,12 +292,12 @@ if __name__ == '__main__' :
   # attr_raw, dim_x, dim_y, projAttrs = get_params_geos(nc_file, attr_to_get, GRID_MAPPING.get('ir105', None))
   # parseResult = parseGeos(step, dim_x, dim_y, attr_raw, projAttrs)
 
-  print("parse result Done:", len(parseResult))
+  # print("parse result Done:", len(parseResult))
 
   # common code
-  lons, lats, attr_values = desctruct_att_lat_lon(parseResult);
+  # lons, lats, attr_values = desctruct_att_lat_lon(parseResult);
 
-  print_result(lons, lats, attr_values)
-  save_to_file(out_file, parseResult)
-  show_plot(lons, lats, attr_values, nc_coverage, f"visualization: {out_file}")
+  # print_result(lons, lats, attr_values, attr_to_get)
+  # save_to_file(out_file, parseResult)
+  # show_plot(lons, lats, attr_values, nc_coverage, f"visualization: {out_file}")
 
