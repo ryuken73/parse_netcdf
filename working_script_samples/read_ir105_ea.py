@@ -2,6 +2,9 @@ import netCDF4 as nc
 import numpy as np
 from pyproj import Proj
 import json
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 
 file_path = 'ir105_ea_lc_202502170000.nc'
 
@@ -58,6 +61,14 @@ for y in range(0, dim_y, step):
             int(image_pixel_values[y, x])  # 픽셀 값 (ushort -> int로 변환)
         ])
 
+# 위경도 범위 출력 (디버깅용)
+lons = [point[0] for point in result]
+lats = [point[1] for point in result]
+img_pix_values = [point[2] for point in result]
+print("Longitude 범위:", min(lons) if lons else "No valid points", "to", max(lons) if lons else "No valid points")
+print("Latitude 범위:", min(lats) if lats else "No valid points", "to", max(lats) if lats else "No valid points")
+print("image pixel values 범위:", min(img_pix_values) if img_pix_values else "No valid points", "to", max(img_pix_values) if img_pix_values else "No valid points")
+
 # 결과 확인 (처음 5개만 출력)
 print("샘플 데이터:", result[:5])
 
@@ -65,6 +76,21 @@ print("샘플 데이터:", result[:5])
 with open("ir105_ea_lc_202502170000_step10.json", "w") as f:
     json.dump(result, f)
 print(f"데이터가 output.json에 저장되었습니다. 총 {len(result)}개 포인트")
+
+# Matplotlib과 Cartopy를 사용한 시각화
+if lons and lats:
+    plt.figure(figsize=(10, 8))
+    ax = plt.axes(projection=ccrs.PlateCarree())
+    ax.set_extent([70, 180, 0, 80], crs=ccrs.PlateCarree())  # 남/북 범위 확장
+    ax.add_feature(cfeature.COASTLINE)
+    ax.add_feature(cfeature.BORDERS, linestyle=':')
+    ax.add_feature(cfeature.OCEAN, facecolor='lightgray')
+    ax.add_feature(cfeature.LAND, facecolor='lightgreen')
+
+    scatter = ax.scatter(lons, lats, c=img_pix_values, cmap='viridis', s=1, transform=ccrs.PlateCarree())
+    plt.colorbar(scatter, label='IR105 pixel values')
+    plt.title('IR105 EA')
+    plt.show()
 
 # 파일 닫기
 ds.close()
