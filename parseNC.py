@@ -10,7 +10,7 @@ import cartopy.feature as cfeature
 from dataclasses import dataclass
 
 @dataclass
-class ProjectionAttributesEA:
+class ProjectionAttributesLC:
   central_meridian: float  # 중앙 경도
   standard_parallel1: float  # 제1 표준 위도
   standard_parallel2: float  # 제2 표준 위도
@@ -22,7 +22,7 @@ class ProjectionAttributesEA:
   upper_left_northing: float  # 좌상단 북쪽 좌표
 
 @dataclass
-class ProjectionAttributesFD:
+class ProjectionAttributesGE:
   sub_lon: float                  # 도를 라디안으로 변환
   perspective_point_height: float # 위성 높이 (km 단위로 변환)
   semi_major_axis: float          # 지구 적도 반지름 (미터)
@@ -54,7 +54,7 @@ def get_params_lc(file_path, var_name):
   pixel_size = ds.getncattr("pixel_size")  # 2000.0 (미터 단위)
   upper_left_easting = ds.getncattr("upper_left_easting")  # -2999000.0
   upper_left_northing = ds.getncattr("upper_left_northing")  # 2599000.0
-  projAttrs = ProjectionAttributesEA(
+  projAttrs = ProjectionAttributesLC(
     central_meridian,
     standard_parallel1,
     standard_parallel2,
@@ -67,7 +67,7 @@ def get_params_lc(file_path, var_name):
   )
   return attr_raw, dim_x, dim_y, projAttrs
 
-def latlon_from_lc(projAttrs: ProjectionAttributesEA):
+def latlon_from_lc(projAttrs: ProjectionAttributesLC):
    # LCC 투영 정의
   proj = Proj(
       proj="lcc",
@@ -127,7 +127,7 @@ def get_params_geos(file_path, var_name, projection_name='gk2a_imager_projection
   coff = projection.getncattr('column_offset')         # 열 중심
   loff = projection.getncattr('line_offset')           # 행 중심
   print(f"sub_lon (deg): {sub_lon_deg}, sub_lon (rad): {sub_lon}, H: {H} km, a: {a} m, b: {b} m, cfac: {cfac}, lfac: {lfac}, coff: {coff}, loff: {loff}")
-  projAttrs = ProjectionAttributesFD(
+  projAttrs = ProjectionAttributesGE(
     sub_lon,
     H,
     a,
