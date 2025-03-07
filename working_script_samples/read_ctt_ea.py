@@ -2,13 +2,17 @@ import netCDF4 as nc
 import numpy as np
 from pyproj import Proj
 import json
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 
 # NetCDF 파일 열기
 file_path = r"ctps_ea_lc_202502170000.nc"
 ds = nc.Dataset(file_path, "r")
 
 # CTT 데이터 읽기 (원래 ushort 값, 자동 스케일링 비활성화)
-ctt_values = ds.variables["CTT"][:, :].data  # raw data로 읽기
+# ctt_values = ds.variables["CTT"][:, :].data  # raw data로 읽기
+ctt_values = ds.variables["CTT"][:]  # raw data로 읽기
 dim_y, dim_x = ctt_values.shape  # 2600행, 3000열
 
 # _FillValue 가져오기
@@ -63,6 +67,16 @@ for y in range(0, dim_y, step):  # 3칸 간격
                 float(lat_grid[y, x]),  # 위도
                 int(ctt_value)  # CTT 값 (원래 ushort 값, 21073~30097)
             ])
+# 위경도 범위 출력 (디버깅용)
+lons = [point[0] for point in result]
+lats = [point[1] for point in result]
+ctt_values = [point[2] for point in result]
+print("Longitude 범위:", min(lons) if lons else "No valid points", "to", max(lons) if lons else "No valid points")
+print("Latitude 범위:", min(lats) if lats else "No valid points", "to", max(lats) if lats else "No valid points")
+print("CTT 범위:", min(ctt_values) if ctt_values else "No valid points", "to", max(ctt_values) if ctt_values else "No valid points")
+
+# 결과 확인 (처음 5개만 출력)
+print("샘플 데이터:", result[:5])
 
 # 결과 확인 (처음 5개만 출력)
 print("샘플 데이터:", result[:5])
@@ -71,6 +85,21 @@ print("샘플 데이터:", result[:5])
 with open("output_step2_K.json", "w") as f:
     json.dump(result, f)
 print(f"데이터가 output.json에 저장되었습니다. 총 {len(result)}개 포인트")
+
+# Matplotlib과 Cartopy를 사용한 시각화
+if lons and lats:
+    plt.figure(figsize=(10, 8))
+    ax = plt.axes(projection=ccrs.PlateCarree())
+    ax.set_extent([70, 180, 0, 80], crs=ccrs.PlateCarree())  # 남/북 범위 확장
+    ax.add_feature(cfeature.COASTLINE)
+    ax.add_feature(cfeature.BORDERS, linestyle=':')
+    ax.add_feature(cfeature.OCEAN, facecolor='lightgray')
+    ax.add_feature(cfeature.LAND, facecolor='lightgreen')
+
+    scatter = ax.scatter(lons, lats, c=ctt_values, cmap='viridis', s=1, transform=ccrs.PlateCarree())
+    plt.colorbar(scatter, label='Cloud Top Temperature (K)')
+    plt.title('Geostationary to WGS84 Converted Data (CTT from GK-2A Full Disk)')
+    plt.show()
 
 # 파일 닫기
 ds.close()
