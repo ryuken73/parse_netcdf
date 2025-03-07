@@ -11,14 +11,14 @@ from dataclasses import dataclass
 
 @dataclass
 class ProjectionAttributesLC:
-  central_meridian: float  # 중앙 경도
-  standard_parallel1: float  # 제1 표준 위도
-  standard_parallel2: float  # 제2 표준 위도
-  origin_latitude: float  # 원점 위도
-  false_easting: float  # 가짜 동쪽
-  false_northing: float  # 가짜 북쪽
-  pixel_size: float  # 픽셀 크기 (미터 단위)
-  upper_left_easting: float  # 좌상단 동쪽 좌표
+  central_meridian: float     # 중앙 경도
+  standard_parallel1: float   # 제1 표준 위도
+  standard_parallel2: float   # 제2 표준 위도
+  origin_latitude: float      # 원점 위도
+  false_easting: float        # 가짜 동쪽
+  false_northing: float       # 가짜 북쪽
+  pixel_size: float           # 픽셀 크기 (미터 단위)
+  upper_left_easting: float   # 좌상단 동쪽 좌표
   upper_left_northing: float  # 좌상단 북쪽 좌표
 
 @dataclass
@@ -37,23 +37,27 @@ _PLOT_BOUND = {
   'ea': [70, 180, 0, 80]
 }
 
-def get_params_lc(file_path, var_name):
+def get_params_lc(file_path, var_name, grid_mapping):
   ds = nc.Dataset(file_path, 'r')
 
   attr_raw = ds.variables[var_name][:]
   dim_y, dim_x = attr_raw.shape
   print(f"{var_name} shape:", attr_raw.shape)
 
+  projection = ds
+  if grid_mapping != None:
+    projection = ds.variables[grid_mapping]
+
   # 투영 정보 가져오기 (LCC)
-  central_meridian = ds.getncattr("central_meridian")  # 126.0
-  standard_parallel1 = ds.getncattr("standard_parallel1")  # 30.0
-  standard_parallel2 = ds.getncattr("standard_parallel2")  # 60.0
-  origin_latitude = ds.getncattr("origin_latitude")  # 38.0
-  false_easting = ds.getncattr("false_easting")  # 0.0
-  false_northing = ds.getncattr("false_northing")  # 0.0
-  pixel_size = ds.getncattr("pixel_size")  # 2000.0 (미터 단위)
-  upper_left_easting = ds.getncattr("upper_left_easting")  # -2999000.0
-  upper_left_northing = ds.getncattr("upper_left_northing")  # 2599000.0
+  central_meridian = projection.getncattr("central_meridian")  # 126.0
+  standard_parallel1 = projection.getncattr("standard_parallel1")  # 30.0
+  standard_parallel2 = projection.getncattr("standard_parallel2")  # 60.0
+  origin_latitude = projection.getncattr("origin_latitude")  # 38.0
+  false_easting = projection.getncattr("false_easting")  # 0.0
+  false_northing = projection.getncattr("false_northing")  # 0.0
+  pixel_size = projection.getncattr("pixel_size")  # 2000.0 (미터 단위)
+  upper_left_easting = projection.getncattr("upper_left_easting")  # -2999000.0
+  upper_left_northing = projection.getncattr("upper_left_northing")  # 2599000.0
   projAttrs = ProjectionAttributesLC(
     central_meridian,
     standard_parallel1,
@@ -99,13 +103,13 @@ def parseLc(step, dim_x, dim_y, attr_raw, projAttrs):
       result.append([
           float(lon_grid[y, x]),  # 경도
           float(lat_grid[y, x]),  # 위도
-          int(attr_value)  # 픽셀 값 (ushort -> int로 변환)
+          float(attr_value)  # 픽셀 값 (ushort -> int로 변환)
       ])
   return result
 
 
 
-def get_params_geos(file_path, var_name, grid_mapping='gk2a_imager_projection'):
+def get_params_geos(file_path, var_name, grid_mapping):
   # NetCDF 파일 열기
   ds = nc.Dataset(file_path, 'r')
 
@@ -116,7 +120,9 @@ def get_params_geos(file_path, var_name, grid_mapping='gk2a_imager_projection'):
   print(f"{var_name} shape:", attr_raw.shape)
 
   # GEOS 투영 파라미터 (gk2a_imager_projection 변수에서 추출)
-  projection = ds.variables[grid_mapping]
+  projection = ds
+  if grid_mapping != None:
+    projection = ds.variables[grid_mapping]
   sub_lon_deg = projection.getncattr('longitude_of_projection_origin')  # 위성 경도 (도 단위)
   sub_lon = sub_lon_deg * math.pi / 180.0  # 도를 라디안으로 변환
   H = projection.perspective_point_height / 1000.0     # 위성 높이 (km 단위로 변환)
@@ -216,26 +222,34 @@ def show_plot(lons, lats, attr_values, nc_coverage, plot_title):
 
 if __name__ == '__main__' :
   step = 10
-  nc_file = './working_script_samples/ctps_fd_ge_202502170000.nc'
-  # nc_file = './working_script_samples/ir105_ea_lc_202502170000.nc'
-  # nc_file = './working_script_samples/ctps_ea_lc_202502170000.nc'
   basename = Path(nc_file).stem
   nc_coverage = basename.split('_')[1]
   out_dir = './jsonfiles'
   out_file = f"{out_dir}/{basename}_step{step}.json"
   parseResult = []
+  GRID_MAPPING = {
+    "ctps": 'gk2a_imager_projection', # if data is ctps, grid_mapping = gk2a_imager_projection
+    "ir105": None
+  }
 
   # test ctps fd
-  attr_to_get = 'CTT'
-  grid_mapping='gk2a_imager_projection'
-  attr_raw, dim_x, dim_y, projAttrs = get_params_geos(nc_file, attr_to_get, grid_mapping)
-  parseResult = parseGeos(step, dim_x, dim_y, attr_raw, projAttrs)
+  # nc_file = './working_script_samples/ctps_fd_ge_202502170000.nc'
+  # attr_to_get = 'CTT'
+  # attr_raw, dim_x, dim_y, projAttrs = get_params_geos(nc_file, attr_to_get, GRID_MAPPING.ctps)
+  # parseResult = parseGeos(step, dim_x, dim_y, attr_raw, projAttrs)
 
-  # test ri105, ctps ea
-  # attr_to_get = 'image_pixel_values' # for ri105
-  # attr_raw, dim_x, dim_y, projAttrs = get_params_lc(nc_file, attr_to_get)
-  # print(projAttrs.central_meridian, projAttrs.upper_left_easting)
+  # test ctps lc
+  # nc_file = './working_script_samples/ctps_ea_lc_202502170000.nc'
+  # attr_to_get = 'CTT'
+  # attr_raw, dim_x, dim_y, projAttrs = get_params_lc(nc_file, attr_to_get, GRID_MAPPING.get('ctps', None))
   # parseResult = parseLc(step, dim_x, dim_y, attr_raw, projAttrs)
+
+  # test ri105 ea
+  nc_file = './working_script_samples/ir105_ea_lc_202502170000.nc'
+  attr_to_get = 'image_pixel_values' # for ri105
+  attr_raw, dim_x, dim_y, projAttrs = get_params_lc(nc_file, attr_to_get, GRID_MAPPING.get('ir105', None))
+  print(projAttrs.central_meridian, projAttrs.upper_left_easting)
+  parseResult = parseLc(step, dim_x, dim_y, attr_raw, projAttrs)
 
   print("parse result Done:", len(parseResult))
 
