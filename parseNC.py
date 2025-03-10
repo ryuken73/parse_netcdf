@@ -1,6 +1,7 @@
 import netCDF4 as nc
 import numpy as np
 from pyproj import Proj
+import os
 import json
 import math
 from pathlib import Path
@@ -239,6 +240,7 @@ def compress_file(input_filename, output_filename=None):
   with open(input_filename, 'rb') as f_in:
     with gzip.open(output_filename, 'wb') as f_out:
       shutil.copyfileobj(f_in, f_out)
+  os.remove(input_filename)
   print(f"Compressed '{input_filename}' to '{output_filename}'")
 
 def desctruct_att_lat_lon(attr_with_lat_lon):
