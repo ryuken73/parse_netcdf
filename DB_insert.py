@@ -18,29 +18,35 @@ db_config = {
 }
 
 # JSON 파일 경로
-json_file_path = './jsonfiles/gk2a_ami_le1b_ir105_ea020lc_202503011340_step10.json'
+json_file_path = './jsonfiles/gk2a_ami_le1b_ir105_ea020lc_202503011350_step10.json'
 
 # 파일명에서 메타데이터 추출 함수
 def extract_metadata_from_filename(filename):
     basename = Path(filename).stem
     parts = basename.split('_')
-    print(parts)
     observation_area = parts[4][:2]  # 'ea'
-    print(observation_area)
     time_str = parts[5]              # '202503011340'
-    print(time_str)
     step = int(parts[6].replace('step', ''))  # 'step10' -> 10
-    print(step)
     print('extract metadata from file:', filename)
 
-    # UTC 시간 변환
+    # UTC 시간 변환 (ISO 8601 형식으로 변환)
     observation_time_utc = datetime.strptime(time_str, '%Y%m%d%H%M')
+    observation_time_utc_iso = observation_time_utc.strftime('%Y-%m-%dT%H:%M:%S')
+    
+    # KORST 시간 계산 (UTC + 9시간, ISO 8601 형식으로 변환)
+    observation_time_korst = observation_time_utc + timedelta(hours=9)
+    observation_time_korst_iso = observation_time_korst.strftime('%Y-%m-%dT%H:%M:%S')
+    
+    print('meta data from fname:', observation_area, observation_time_utc, observation_time_korst, step)
+    return observation_area, observation_time_utc_iso, observation_time_korst_iso, step
+
+    # # UTC 시간 변환
+    # observation_time_utc = datetime.strptime(time_str, '%Y%m%d%H%M')
     
     # KORST 시간 계산 (UTC + 9시간)
-    observation_time_korst = observation_time_utc + timedelta(hours=9)
-    print('meta data from fname:', observation_area, observation_time_utc, observation_time_korst, step)
+    # observation_time_korst = observation_time_utc + timedelta(hours=9)
     
-    return observation_area, observation_time_utc, observation_time_korst, step
+    # return observation_area, observation_time_utc, observation_time_korst, step
 
 # JSON 데이터 삽입 함수
 def insert_json_data(json_file_path, db_config):
@@ -55,6 +61,7 @@ def insert_json_data(json_file_path, db_config):
         observation_area, observation_time_utc, observation_time_korst, step = extract_metadata_from_filename(json_file_path)
 
         # JSON 파일 읽기
+        print('read json data from file:', json_file_path)
         with open(json_file_path, 'r') as f:
             json_data = json.load(f)
 
@@ -94,4 +101,12 @@ def insert_json_data(json_file_path, db_config):
 
 # 실행
 if __name__ == "__main__":
-    insert_json_data(json_file_path, db_config)
+    directory = Path('./jsonfiles');
+    json_files = [f.name for f in directory.glob("gk2a_*.json") if f.is_file()]
+    for json_file in json_files:
+        print('insert json:', json_file)
+        try :
+            insert_json_data(Path.joinpath(directory, json_file), db_config)
+        except Exception as e:
+            print(f"오류발생 ({json_file}): {e}") 
+            continue

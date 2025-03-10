@@ -2,6 +2,7 @@
 binfiles
 ncfiles
 old_results
+jsonfiles
 *.nc
 *.json
 *.pyc

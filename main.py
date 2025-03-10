@@ -2,7 +2,7 @@ from pathlib import Path
 from parseNC import *
 
 if __name__ == '__main__' :
-  step = 10
+  step = 8 
   out_dir = './jsonfiles'
   parseResult = []
 
@@ -20,6 +20,7 @@ if __name__ == '__main__' :
 
       print("parse result Done:", len(parseResult))
       save_to_file(out_file, parseResult)
+      compress_file(out_file)
 
       # debug result
       lons, lats, attr_values = desctruct_att_lat_lon(parseResult);

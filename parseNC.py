@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from dataclasses import dataclass
+import gzip
+import shutil
 
 @dataclass
 class ProjectionAttributesLC:
@@ -222,6 +224,22 @@ def save_to_file(out_file, json_data):
     json.dump(json_data, f)
   print(f"데이터가 {out_file}에 저장되었습니다. 총 {len(json_data)}개 포인트")
   return True
+
+def compress_file(input_filename, output_filename=None):
+  """
+  지정된 파일을 gzip으로 압축합니다.
+  
+  Args:
+      input_filename (str): 원본 파일 경로 (예: 'data.json')
+      output_filename (str, optional): 출력 파일 경로. 기본값은 input_filename + '.gz'
+  """
+  if output_filename is None:
+    output_filename = input_filename + '.gz'
+  
+  with open(input_filename, 'rb') as f_in:
+    with gzip.open(output_filename, 'wb') as f_out:
+      shutil.copyfileobj(f_in, f_out)
+  print(f"Compressed '{input_filename}' to '{output_filename}'")
 
 def desctruct_att_lat_lon(attr_with_lat_lon):
   lons = [point[0] for point in attr_with_lat_lon]
