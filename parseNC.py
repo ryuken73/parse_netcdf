@@ -270,26 +270,37 @@ def show_plot(lons, lats, attr_values, nc_coverage, plot_title):
 
 def mk_out_file_name(nc_file, step, out_dir):
   basename = Path(nc_file).stem
-  nc_coverage = basename.split('_')[1]
+  # nc_coverage = basename.split('_')[1]
+  nc_coverage = basename.split('_')[4][:2]
+  nc_projection = basename.split('_')[4][-2:]
   out_file = f"{out_dir}/{basename}_step{step}.json"
-  return out_file, nc_coverage
+  return out_file, nc_coverage, nc_projection
 
 GRID_MAPPING = {
-  "ctps": 'gk2a_imager_projection', # if data is ctps, grid_mapping = gk2a_imager_projection
-  "ir105": None
+  "kma_grid": 'gk2a_imager_projection', # if data is ctps, grid_mapping = gk2a_imager_projection
+  "no_grid": None
 }
 
-# if __name__ == '__main__' :
-#   step = 10
-#   out_dir = './jsonfiles'
-#   parseResult = []
+if __name__ == '__main__' :
+  step = 10
+  out_dir = './'
+  parseResult = []
+
+  get_params_func = {
+    'lc': get_params_lc,
+    'ge': get_params_geos
+  }
+
+  parse_func = {
+    'lc': parseLc,
+    'ge': parseGeos
+  }
 
   # test ctps fd
   # attr_to_get = 'CTT'
-  # nc_file = './working_script_samples/ctps_fd_ge_202502170000.nc'
-  # out_file, nc_coverage = mk_out_file_name(nc_file, step, out_dir)
-  # attr_raw, dim_x, dim_y, projAttrs = get_params_geos(nc_file, attr_to_get, GRID_MAPPING.get('ctps', None))
-  # parseResult = parseGeos(step, dim_x, dim_y, attr_raw, projAttrs)
+  # nc_file = './working_script_samples/gk2a_ami_le2_ctps_fd020ge_202502170000.nc'
+  # out_file, nc_coverage, nc_projection = mk_out_file_name(nc_file, step, out_dir)
+  # attr_raw, dim_x, dim_y, projAttrs = get_params_geos(nc_file, attr_to_get, GRID_MAPPING.get('kma_grid', None))
 
   # test ctps lc
   # attr_to_get = 'CTT'
@@ -300,21 +311,27 @@ GRID_MAPPING = {
 
   # test ri105 ea
   # attr_to_get = 'image_pixel_values' # for ri105
-  # nc_file = './working_script_samples/ir105_ea_lc_202502170000.nc'
-  # out_file, nc_coverage = mk_out_file_name(nc_file, step, out_dir)
-  # attr_raw, dim_x, dim_y, projAttrs = get_params_lc(nc_file, attr_to_get, GRID_MAPPING.get('ir105', None))
-  # parseResult = parseLc(step, dim_x, dim_y, attr_raw, projAttrs)
+  # nc_file = './working_script_samples/gk2a_ami_le1b_ir105_ea020lc_202502170000.nc'
+  # out_file, nc_coverage, nc_projection = mk_out_file_name(nc_file, step, out_dir)
+  # attr_raw, dim_x, dim_y, projAttrs = get_params_func[nc_projection](nc_file, attr_to_get, GRID_MAPPING.get('no_grid', None))
 
   # test ri105 fd
   # attr_to_get = 'image_pixel_values' # for ri105
-  # nc_file = './working_script_samples/ir105_fd_ge_202502170000.nc'
-  # out_file, nc_coverage = mk_out_file_name(nc_file, step, out_dir)
-  # attr_raw, dim_x, dim_y, projAttrs = get_params_geos(nc_file, attr_to_get, GRID_MAPPING.get('ir105', None))
-  # parseResult = parseGeos(step, dim_x, dim_y, attr_raw, projAttrs)
+  # nc_file = './working_script_samples/gk2a_ami_le1b_ir105_fd020ge_202502170000.nc'
+  # out_file, nc_coverage, nc_projection = mk_out_file_name(nc_file, step, out_dir)
+  # attr_raw, dim_x, dim_y, projAttrs = get_params_geos(nc_file, attr_to_get, GRID_MAPPING.get('no_grid', None))
 
+  # test adps fd
+  # attr_to_get = 'ADPS' # for ri105
+  # nc_file = './working_script_samples/gk2a_ami_le2_adps_ea020lc_202503091450.nc'
+  # out_file, nc_coverage, nc_projection = mk_out_file_name(nc_file, step, out_dir)
+  # attr_raw, dim_x, dim_y, projAttrs = get_params_func[nc_projection](nc_file, attr_to_get, GRID_MAPPING.get('kma_grid', None))
+
+  # common code 
+  # parseResult = parse_func[nc_projection](step, dim_x, dim_y, attr_raw, projAttrs)
   # print("parse result Done:", len(parseResult))
 
-  # common code
+  # validation code
   # lons, lats, attr_values = desctruct_att_lat_lon(parseResult);
 
   # print_result(lons, lats, attr_values, attr_to_get)

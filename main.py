@@ -1,6 +1,11 @@
 from pathlib import Path
 from parseNC import *
 
+GRID_MAPPING = {
+  "kma_grid": 'gk2a_imager_projection', # if data is ctps, grid_mapping = gk2a_imager_projection
+  "no_grid": None
+}
+
 if __name__ == '__main__' :
   step = 8 
   out_dir = './jsonfiles'
@@ -14,9 +19,9 @@ if __name__ == '__main__' :
     nc_file = f'./ncfiles/{nc_file_name}'
     try :
       attr_to_get = 'image_pixel_values'
-      out_file, nc_coverage = mk_out_file_name(nc_file, step, out_dir)
-      attr_raw, dim_x, dim_y, projAttrs = get_params_lc(nc_file, attr_to_get, GRID_MAPPING.get('ir105', None))
-      parseResult = parseLc(step, dim_x, dim_y, attr_raw, projAttrs)
+      out_file, nc_coverage, nc_projection = mk_out_file_name(nc_file, step, out_dir)
+      attr_raw, dim_x, dim_y, projAttrs = get_params_func[nc_projection](nc_file, attr_to_get, GRID_MAPPING.get('no_grid', None))
+      parseResult = parse_func[nc_projection](step, dim_x, dim_y, attr_raw, projAttrs)
 
       print("parse result Done:", len(parseResult))
       save_to_file(out_file, parseResult)
