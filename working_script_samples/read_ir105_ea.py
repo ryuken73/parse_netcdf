@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 
-file_path = 'ir105_ea_lc_202502170000.nc'
+file_path = 'gk2a_ami_le1b_ir105_ea020lc_202502281500.nc'
 
 ds = nc.Dataset(file_path, 'r')
 
@@ -51,7 +51,7 @@ easting_grid, northing_grid = np.meshgrid(easting, northing)
 lon_grid, lat_grid = proj(easting_grid, northing_grid, inverse=True)
 
 # 데이터 리스트 생성: [[lon, lat, image_pixel_value], ...]
-step = 5 
+step = 1 
 result = []
 for y in range(0, dim_y, step):
     for x in range(0, dim_x, step):
@@ -73,7 +73,7 @@ print("image pixel values 범위:", min(img_pix_values) if img_pix_values else "
 print("샘플 데이터:", result[:5])
 
 # JSON 파일로 저장
-with open("ir105_ea_lc_202502170000_step10.json", "w") as f:
+with open(f"ir105_ea_lc_202502170000_step{step}.json", "w") as f:
     json.dump(result, f)
 print(f"데이터가 output.json에 저장되었습니다. 총 {len(result)}개 포인트")
 
