@@ -100,13 +100,15 @@ def latlon_from_lc(projAttrs: ProjectionAttributesLC, dim_x, dim_y):
   lon_grid, lat_grid = proj(easting_grid, northing_grid, inverse=True)
   return lon_grid, lat_grid
 
-def parseLc(step, dim_x, dim_y, attr_raw, projAttrs):
+def parseLc(step, dim_x, dim_y, attr_raw, projAttrs, conversion_array=None, use_index=0):
   print("start parseLc: prams =", step, dim_x, dim_y)
   lon_grid, lat_grid = latlon_from_lc(projAttrs, dim_x, dim_y)
   result = []
   for y in range(0, dim_y, step):
     for x in range(0, dim_x, step):
       attr_value = attr_raw[y, x]
+      if conversion_array is not None:
+        attr_value = conversion_array[attr_value][use_index]
       result.append([
           float(lon_grid[y, x]),  # 경도
           float(lat_grid[y, x]),  # 위도
@@ -200,7 +202,7 @@ def latlon_from_geos(Line, Column, projAttrs, dim_x, dim_y):
   nlat = np.arctan((1.006739501 * S3) / Sxy) / degtorad
   return nlon, nlat
 
-def parseGeos(step, dim_x, dim_y, attr_raw, projAttrs):
+def parseGeos(step, dim_x, dim_y, attr_raw, projAttrs, conversion_array=None, use_index=0):
   result = []
   for y in range(0, dim_y, step):
     for x in range(0, dim_x, step):
@@ -213,6 +215,8 @@ def parseGeos(step, dim_x, dim_y, attr_raw, projAttrs):
             # CTT 값 스케일링 적용 (K 단위)
             # ctt_adjusted = ctt_value * 0.01  # scale_factor = 0.01, add_offset = 0.0
             ctt_adjusted = ctt_value # scale_factor = 0.01, add_offset = 0.0
+            if conversion_array is not None:
+              ctt_adjusted = conversion_array[ctt_adjusted][use_index]
             result.append([
                 float(lon),  # 경도
                 float(lat),  # 위도
@@ -281,20 +285,21 @@ GRID_MAPPING = {
   "no_grid": None
 }
 
-if __name__ == '__main__' :
-  step = 10
-  out_dir = './'
-  parseResult = []
+get_params_func = {
+  'lc': get_params_lc,
+  'ge': get_params_geos
+}
 
-  get_params_func = {
-    'lc': get_params_lc,
-    'ge': get_params_geos
-  }
+parse_func = {
+  'lc': parseLc,
+  'ge': parseGeos
+}
 
-  parse_func = {
-    'lc': parseLc,
-    'ge': parseGeos
-  }
+# if __name__ == '__main__' :
+  # step = 10
+  # out_dir = './'
+  # parseResult = []
+
 
   # test ctps fd
   # attr_to_get = 'CTT'
@@ -310,12 +315,18 @@ if __name__ == '__main__' :
   # parseResult = parseLc(step, dim_x, dim_y, attr_raw, projAttrs)
 
   # test ri105 ea
+  # conversion_array = np.loadtxt('ir105_conversion_c.txt');
+  # use_index = 0 # effective bright temperature : for colorIR``
+  # use_index = 1 # effective bright temperature : for monoIR``
   # attr_to_get = 'image_pixel_values' # for ri105
   # nc_file = './working_script_samples/gk2a_ami_le1b_ir105_ea020lc_202502170000.nc'
   # out_file, nc_coverage, nc_projection = mk_out_file_name(nc_file, step, out_dir)
   # attr_raw, dim_x, dim_y, projAttrs = get_params_func[nc_projection](nc_file, attr_to_get, GRID_MAPPING.get('no_grid', None))
 
   # test ri105 fd
+  # conversion_array = np.loadtxt('ir105_conversion_c.txt');
+  # use_index = 0 # effective bright temperature : for colorIR``
+  # use_index = 1 # effective bright temperature : for monoIR``
   # attr_to_get = 'image_pixel_values' # for ri105
   # nc_file = './working_script_samples/gk2a_ami_le1b_ir105_fd020ge_202502170000.nc'
   # out_file, nc_coverage, nc_projection = mk_out_file_name(nc_file, step, out_dir)
@@ -328,7 +339,7 @@ if __name__ == '__main__' :
   # attr_raw, dim_x, dim_y, projAttrs = get_params_func[nc_projection](nc_file, attr_to_get, GRID_MAPPING.get('kma_grid', None))
 
   # common code 
-  # parseResult = parse_func[nc_projection](step, dim_x, dim_y, attr_raw, projAttrs)
+  # parseResult = parse_func[nc_projection](step, dim_x, dim_y, attr_raw, projAttrs, conversion_array, use_index)
   # print("parse result Done:", len(parseResult))
 
   # validation code
