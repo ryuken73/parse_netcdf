@@ -8,6 +8,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
+from pyproj import Transformer, CRS
+from PIL import Image
 from dataclasses import dataclass
 import gzip
 import shutil
@@ -39,6 +41,150 @@ _PLOT_BOUND = {
   'fd': [-180, 190, -80, 80],
   'ea': [70, 180, 0, 80]
 }
+
+IMAGE_SIZE = {
+  # 'ea': (600, 520),
+  'ea': (800, 780),
+  # 'ea': (1200, 1040),
+}
+
+IMAGE_BOUNDS = {
+  'ea': [76.81183423919347, 11.369317564542508, 175.08747983767321, 61.93104770869447] 
+}
+
+# Web Mercator 투영 정의
+web_mercator_crs = CRS.from_epsg("3857")  # EPSG:3857 (Web Mercator)
+wgs84_crs = CRS.from_epsg("4326")  # EPSG:4326 (WGS84)
+transformer_to_mercator = Transformer.from_crs(wgs84_crs, web_mercator_crs, always_xy=True)
+
+# 색상 매핑 (검정-흰색 보간)
+def get_color_ir105_mono(value):
+    if value == -9999:
+        return [0, 0, 0, 0]  # 투명
+        # print(f'fill red {value}')
+        return [255, 0, 0, 255]  # red
+    t_min, t_max = -100, 30
+    ratio = min(max((value - t_min) / (t_max - t_min), 0), 1)
+    r = int(255 * (1 - ratio))
+    g = int(255 * (1 - ratio))
+    b = int(255 * (1 - ratio))
+    return [r, g, b, 255]  # RGBA
+
+def get_color_ir105_color(temp):
+    if temp == -9999:
+        return [0, 0, 0, 0]  # 투명
+        # print(f'fill red {value}')
+        return [255, 0, 0, 255]  # red
+    # Define key color points and their RGB values based on the gradient
+    colors = {
+        20: [0, 0, 0],       # Black
+        -20: [255, 255, 255], # White
+        -21: [135, 206, 235], # Sky blue (sharp transition from white at -20)
+        -30: [0, 0, 255],    # Blue
+        -40: [0, 255, 0],    # Green
+        -45: [144, 238, 144], # Light green
+        -50: [255, 255, 0],   # Yellow
+        -60: [255, 0, 0],     # Red
+        -70: [0, 0, 0],       # Black
+        -80: [255, 255, 255], # White (sharp transition from black at -70)
+        -81: [128, 128, 128], # Gray (sharp transition from white at -80)
+        -90: [128, 0, 128]    # Purple
+    }
+    
+    # Clamp temperature to valid range (20 to -90)
+    temp = max(-90, min(20, temp))
+    
+    # Find the two closest key points for interpolation (considering sharp transitions)
+    keys = sorted(colors.keys(), reverse=True)  # Sort in descending order (20 to -90)
+    for i in range(len(keys) - 1):
+        if temp <= keys[i] and temp > keys[i + 1]:
+            start_temp, end_temp = keys[i], keys[i + 1]
+            start_color, end_color = colors[start_temp], colors[end_temp]
+            break
+    else:
+        if temp <= -81:
+            start_temp, end_temp = -81, -90
+            start_color, end_color = colors[-81], colors[-90]
+        elif temp >= 20:
+            return [0, 0, 0, 255]  # Black for temp >= 20
+        else:
+            start_temp, end_temp = keys[0], keys[1]
+            start_color, end_color = colors[start_temp], colors[end_temp]
+    
+    # Linear interpolation based on temperature position
+    if start_temp == end_temp or (start_temp in [-20, -80] and temp == start_temp + 1):
+        return end_color + [255]  # Sharp transition at -20 and -80
+    else:
+        ratio = (start_temp - temp) / (start_temp - end_temp)  # Adjust for descending order
+        r = int(start_color[0] + (end_color[0] - start_color[0]) * ratio)
+        g = int(start_color[1] + (end_color[1] - start_color[1]) * ratio)
+        b = int(start_color[2] + (end_color[2] - start_color[2]) * ratio)
+        return [r, g, b, 255]
+
+get_color_func = {
+   'mono': get_color_ir105_mono,
+   'color': get_color_ir105_color,
+}
+
+def save_to_image_ir105(data, output_path, nc_coverage, mode='mono'):
+    """
+    주어진 [[lon, lat, value], ...] 데이터를 Web Mercator 투영을 반영하여 이미지로 변환.
+    """
+    image_size = IMAGE_SIZE[nc_coverage]
+    bounds = IMAGE_BOUNDS[nc_coverage]
+    print(image_size)
+    # 경계 설정 (WGS84 좌표)
+    lon_min, lat_min, lon_max, lat_max = bounds
+    
+    # 이미지 크기
+    width, height = image_size  # 1200x1040 (원본 비율에 가까운 해상도)
+    
+    # WGS84 경계 좌표를 Web Mercator로 변환
+    x_min, y_max = transformer_to_mercator.transform(lon_min, lat_max)  # 좌상단
+    x_max, y_min = transformer_to_mercator.transform(lon_max, lat_min)  # 우하단
+    # print(f"x_min, x_max", x_min, x_max)
+    # print(f"y_min, y_max", y_min, y_max)
+    
+    # Web Mercator 좌표 간격 계산
+    x_step = (x_max - x_min) / (width - 1)
+    y_step = (y_max - y_min) / (height - 1)
+    
+    # 2D 배열 초기화 (값 저장용)
+    grid_values = np.full((height, width), -9999, dtype=np.float32)
+    
+    # 데이터를 Web Mercator 좌표로 변환 후 매핑
+    for lon, lat, value in data:
+        # WGS84 -> Web Mercator 변환
+        x, y = transformer_to_mercator.transform(lon, lat)
+        # Web Mercator 좌표를 픽셀 인덱스로 변환
+        col = int((x - x_min) / x_step)  # 경도 -> 열 인덱스
+        row = int((y_max - y) / y_step)  # 위도 -> 행 인덱스 (y축은 상단에서 하단으로 감소)
+        
+        # 인덱스가 범위 내에 있는지 확인
+        if 0 <= row < height and 0 <= col < width:
+            grid_values[row, col] = value
+        # else:
+            # print(f'valuse in range: {row}, {col}') 
+
+    
+    # 이미지 데이터 생성 (RGBA)
+    image_data = np.zeros((height, width, 4), dtype=np.uint8)
+    for i in range(height):
+        for j in range(width):
+            # if i < 100:
+            #     image_data[i, j] = [255, 255, 0, 255]
+                # continue
+            image_data[i, j] = get_color_func[mode](grid_values[i, j])
+            # if image_data[i, j][0] == 255:
+                # print(f"fill red {j} {j}")
+    
+    # 이미지를 PNG로 저장
+    image = Image.fromarray(image_data, 'RGBA')
+    image.save(output_path)
+    print(f"Image saved to {output_path} with bounds: {bounds}")
+
+
+
 
 def get_params_lc(file_path, var_name, grid_mapping):
   try :

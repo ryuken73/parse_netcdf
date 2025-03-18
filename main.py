@@ -7,6 +7,7 @@ GRID_MAPPING = {
 }
 
 def nc_to_json(step):
+  out_dir = './jsonfiles'
   parseResult = []
   conversion_array = np.loadtxt('ir105_conversion_c.txt');
   use_index = 1 #mono IR
@@ -25,6 +26,10 @@ def nc_to_json(step):
 
       print("parse result Done:", len(parseResult))
       save_to_file(out_file, parseResult)
+      out_image_name_mono = f'{out_dir}/{Path(out_file).stem}_mono.png'
+      out_image_name_color = f'{out_dir}/{Path(out_file).stem}_color.png'
+      save_to_image_ir105(parseResult, out_image_name_mono, nc_coverage, mode='mono')
+      save_to_image_ir105(parseResult, out_image_name_color, nc_coverage, mode='color')
       compress_file(out_file)
 
       # debug result
@@ -36,8 +41,8 @@ def nc_to_json(step):
       continue
     
 if __name__ == '__main__' :
-  steps = [10, 8, 5, 4]
-  # steps = [1]
+  # steps = [10, 8, 5, 4]
+  steps = [2, 10, 8, 5, 4]
   for step in steps:
     nc_to_json(step)
 
