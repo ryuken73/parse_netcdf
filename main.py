@@ -6,18 +6,28 @@ GRID_MAPPING = {
   "no_grid": None
 }
 
+get_params_func = {
+  'lc': get_params_lc,
+  'ge': get_params_geos
+}
+
+parse_func = {
+  'lc': parseLc,
+  'ge': parseGeos
+}
+
 def nc_to_json(step):
   out_dir = './jsonfiles'
   parseResult = []
   conversion_array = np.loadtxt('ir105_conversion_c.txt');
-  use_index = 1 #mono IR
+  use_index = 1 #mono IR (use second column(brightness temperature))
 
-  directory = Path("./ncfiles")
+  directory = Path("./ncfiles_temp")
   nc_files = [f.name for f in directory.glob("*.nc") if f.is_file()]
   print("nc files:", nc_files)
   for nc_file_name in nc_files:
     print(f"처리 중: {nc_file_name}")
-    nc_file = f'./ncfiles/{nc_file_name}'
+    nc_file = f'./ncfiles_temp/{nc_file_name}'
     try :
       attr_to_get = 'image_pixel_values'
       out_file, nc_coverage, nc_projection = mk_out_file_name(nc_file, step, out_dir)
@@ -42,7 +52,8 @@ def nc_to_json(step):
     
 if __name__ == '__main__' :
   # steps = [10, 8, 5, 4]
-  steps = [2, 10, 8, 5, 4]
+  # steps = [2, 10, 8, 5, 4]
+  steps = [4]
   for step in steps:
     nc_to_json(step)
 

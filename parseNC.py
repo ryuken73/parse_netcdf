@@ -45,11 +45,13 @@ _PLOT_BOUND = {
 IMAGE_SIZE = {
   # 'ea': (600, 520),
   'ea': (800, 780),
+  'fd': (800, 780),
   # 'ea': (1200, 1040),
 }
 
 IMAGE_BOUNDS = {
-  'ea': [76.81183423919347, 11.369317564542508, 175.08747983767321, 61.93104770869447] 
+  'ea': [76.81183423919347, 11.369317564542508, 175.08747983767321, 61.93104770869447] ,
+  'fd': [76.81183423919347, 11.369317564542508, 175.08747983767321, 61.93104770869447] 
 }
 
 # Web Mercator 투영 정의
@@ -426,20 +428,20 @@ def mk_out_file_name(nc_file, step, out_dir):
   out_file = f"{out_dir}/{basename}_step{step}.json"
   return out_file, nc_coverage, nc_projection
 
-GRID_MAPPING = {
-  "kma_grid": 'gk2a_imager_projection', # if data is ctps, grid_mapping = gk2a_imager_projection
-  "no_grid": None
-}
+# GRID_MAPPING = {
+#   "kma_grid": 'gk2a_imager_projection', # if data is ctps, grid_mapping = gk2a_imager_projection
+#   "no_grid": None
+# }
 
-get_params_func = {
-  'lc': get_params_lc,
-  'ge': get_params_geos
-}
+# get_params_func = {
+#   'lc': get_params_lc,
+#   'ge': get_params_geos
+# }
 
-parse_func = {
-  'lc': parseLc,
-  'ge': parseGeos
-}
+# parse_func = {
+#   'lc': parseLc,
+#   'ge': parseGeos
+# }
 
 # if __name__ == '__main__' :
   # step = 10
