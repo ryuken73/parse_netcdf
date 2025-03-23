@@ -50,7 +50,7 @@ def generate_image_from_data(data, output_path, image_size=(600, 520), bounds=[7
         if 0 <= row < height and 0 <= col < width:
             grid_values[row, col] = value
         # else:
-            # print(f'valuse in range: {row}, {col}') 
+        # print(f'valuse in range: {x} {y} {row}, {col}') 
 
     # 색상 매핑 (검정-흰색 보간)
     def get_color_from_value(value):
@@ -72,7 +72,21 @@ def generate_image_from_data(data, output_path, image_size=(600, 520), bounds=[7
             # if i < 100:
             #     image_data[i, j] = [255, 255, 0, 255]
                 # continue
-            image_data[i, j] = get_color_from_value(grid_values[i, j])
+            image_value = get_color_from_value(grid_values[i, j])
+            if image_value == [0, 0, 0 ,0]:
+                left_value = image_data[i][j-1 if j > 1 else 0]
+                # right_value = image_data[i][j+1 if j < width-1 else width-1]
+                up_value = image_data[i-1 if i > 1 else 0][j]
+                # down_value = image_data[i+1 if i < height-1 else height-1][j]
+                # print("left, right, up, down", left_value, right_value, up_value, down_value)
+                # image_value = np.mean([left_value, right_value, up_value, down_value], axis=0)
+                image_value = np.mean([left_value,up_value], axis=0)
+                # image_value = down_value
+                if image_value[0] == 0 and image_value[1] == 0 and image_value[2] == 0:
+                    image_value[3] = 0
+                else:
+                    image_value[3] = 255
+            image_data[i][j] = image_value
             # if image_data[i, j][0] == 255:
                 # print(f"fill red {j} {j}")
     
