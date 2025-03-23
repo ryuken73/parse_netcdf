@@ -13,6 +13,53 @@ web_mercator_crs = CRS.from_epsg("3857")  # EPSG:3857 (Web Mercator)
 wgs84_crs = CRS.from_epsg("4326")  # EPSG:4326 (WGS84)
 transformer_to_mercator = Transformer.from_crs(wgs84_crs, web_mercator_crs, always_xy=True)
 
+def get_color_from_temperature(temp):
+    # Define key color points and their RGB values based on the gradient
+    colors = {
+        20: [0, 0, 0],       # Black
+        -20: [255, 255, 255], # White
+        -21: [135, 206, 235], # Sky blue (sharp transition from white at -20)
+        -30: [0, 0, 255],    # Blue
+        -40: [0, 255, 0],    # Green
+        -45: [144, 238, 144], # Light green
+        -50: [255, 255, 0],   # Yellow
+        -60: [255, 0, 0],     # Red
+        -70: [0, 0, 0],       # Black
+        -80: [255, 255, 255], # White (sharp transition from black at -70)
+        -81: [128, 128, 128], # Gray (sharp transition from white at -80)
+        -90: [128, 0, 128]    # Purple
+    }
+    
+    # Clamp temperature to valid range (20 to -90)
+    temp = max(-90, min(20, temp))
+    
+    # Find the two closest key points for interpolation (considering sharp transitions)
+    keys = sorted(colors.keys(), reverse=True)  # Sort in descending order (20 to -90)
+    for i in range(len(keys) - 1):
+        if temp <= keys[i] and temp > keys[i + 1]:
+            start_temp, end_temp = keys[i], keys[i + 1]
+            start_color, end_color = colors[start_temp], colors[end_temp]
+            break
+    else:
+        if temp <= -81:
+            start_temp, end_temp = -81, -90
+            start_color, end_color = colors[-81], colors[-90]
+        elif temp >= 20:
+            return [0, 0, 0, 255]  # Black for temp >= 20
+        else:
+            start_temp, end_temp = keys[0], keys[1]
+            start_color, end_color = colors[start_temp], colors[end_temp]
+    
+    # Linear interpolation based on temperature position
+    if start_temp == end_temp or (start_temp in [-20, -80] and temp == start_temp + 1):
+        return end_color + [255]  # Sharp transition at -20 and -80
+    else:
+        ratio = (start_temp - temp) / (start_temp - end_temp)  # Adjust for descending order
+        r = int(start_color[0] + (end_color[0] - start_color[0]) * ratio)
+        g = int(start_color[1] + (end_color[1] - start_color[1]) * ratio)
+        b = int(start_color[2] + (end_color[2] - start_color[2]) * ratio)
+        return [r, g, b, 255]
+
 # def generate_image_from_data(data, output_path, image_size=(1200, 1040), bounds=[76.811834, 11.308528, 175.188166, 53.303712]):
 def generate_image_from_data(data, output_path, image_size=(600, 520), bounds=[76.81183423919347, 11.369317564542508, 175.08747983767321, 61.93104770869447]):
     """
@@ -53,6 +100,7 @@ def generate_image_from_data(data, output_path, image_size=(600, 520), bounds=[7
         # print(f'valuse in range: {x} {y} {row}, {col}') 
 
     # 색상 매핑 (검정-흰색 보간)
+
     def get_color_from_value(value):
         if value == -9999:
             return [0, 0, 0, 0]  # 투명
@@ -69,19 +117,26 @@ def generate_image_from_data(data, output_path, image_size=(600, 520), bounds=[7
     image_data = np.zeros((height, width, 4), dtype=np.uint8)
     for i in range(height):
         for j in range(width):
-            # if i < 100:
-            #     image_data[i, j] = [255, 255, 0, 255]
-                # continue
+            if grid_values[i, j] == -9999:
+                left_value = grid_values[i][j-1 if j > 1 else 0]
+                right_value = grid_values[i][j+1 if j < width-1 else width-1]
+                up_value = grid_values[i-1 if i > 1 else 0][j]
+                up_left = grid_values[i-1 if i > 1 else 0][j-1 if j > 1 else 0]
+                up_right = grid_values[i-1 if i > 1 else 0][j+1 if j < width-1 else width-1]
+                down_value = grid_values[i+1 if i < height-1 else height-1][j]
+                down_left = grid_values[i+1 if i < height-1 else height-1][j-1 if j > 1 else 0]
+                down_right = grid_values[i+1 if i < height-1 else height-1][j+1 if j < width-1 else width-1]
+                if left_value == -9999 and right_value == -9999 and up_value == -9999 and down_value == -9999 and up_left == -9999 and up_right == -9999 and down_left == -9999 and down_right == -9999: 
+                    # position of point is off the range
+                    image_data[i][j] = [0, 0, 0, 0]
+                    continue
             image_value = get_color_from_value(grid_values[i, j])
+            # image_value = get_color_from_temperature(grid_values[i, j])
             if image_value == [0, 0, 0 ,0]:
                 left_value = image_data[i][j-1 if j > 1 else 0]
-                # right_value = image_data[i][j+1 if j < width-1 else width-1]
                 up_value = image_data[i-1 if i > 1 else 0][j]
-                # down_value = image_data[i+1 if i < height-1 else height-1][j]
                 # print("left, right, up, down", left_value, right_value, up_value, down_value)
-                # image_value = np.mean([left_value, right_value, up_value, down_value], axis=0)
                 image_value = np.mean([left_value,up_value], axis=0)
-                # image_value = down_value
                 if image_value[0] == 0 and image_value[1] == 0 and image_value[2] == 0:
                     image_value[3] = 0
                 else:
