@@ -95,9 +95,9 @@ def start_watching(path_to_watch, callback=None):
         print("감시 종료")
     observer.join()
 
-if __name__ == "__main__":
-    def my_callback(file_path):
-        print(f"콜백 실행: {file_path} - 여기서 원하는 작업을 하세요!")
+# if __name__ == "__main__":
+#     def my_callback(file_path):
+#         print(f"콜백 실행: {file_path} - 여기서 원하는 작업을 하세요!")
 
-    watch_path = r"D:\002.Code\002.node\weather_api\kma_fetch\data\weather\gk2a"
-    start_watching(watch_path, my_callback)
+#     watch_path = r"D:\002.Code\002.node\weather_api\kma_fetch\data\weather\gk2a"
+#     start_watching(watch_path, my_callback)
