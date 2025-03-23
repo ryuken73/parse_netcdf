@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
@@ -144,6 +145,7 @@ def generate_image_from_data(data, output_path, image_size=(600, 520), bounds=[6
 #     return bounds
 
 # steps = [4, 5, 8, 10]
+out_dir = r'D:\002.Code\099.study\deck.gl.test\public'
 steps = [1]
 for step in steps:
 #   data_file = f'gk2a_ami_le1b_ir105_ea020lc_202502281500_step{step}.json
@@ -152,6 +154,8 @@ for step in steps:
   print('generate png for datafile:', data_file)
   with open(data_file, 'r') as data_json:
     data = json.load(data_json)
+    # output_path = Path(data_file).stem + '.png'
+    
     output_path = Path(data_file).stem + '.png'
     # bounds = generate_image_from_data(data, output_path, image_size=(600, 520))
     # bounds = generate_image_from_data(data, output_path)
