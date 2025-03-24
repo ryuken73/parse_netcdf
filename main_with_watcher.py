@@ -8,11 +8,11 @@ print(f'watch filename with _{target_coverage}.')
 
 STEPS = {
   'ea': [4, 8, 10],
-  'fd': [3, 8, 10],
+  'fd': [4, 8, 10],
 }
 SAVE_IMAGE_STEPS = {
   'ea': [4],
-  'fd': [3, 8]
+  'fd': [4]
 }
 
 
