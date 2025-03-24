@@ -7,7 +7,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 
 # NetCDF 파일 경로
-file_path = 'ir105_fd_ge_202502170000.nc'
+file_path = 'gk2a_ami_le1b_ir105_fd020ge_202503232320_202503240820.nc'
 
 # NetCDF 파일 열기
 ds = nc.Dataset(file_path, 'r')
@@ -57,7 +57,7 @@ def latlon_from_geos(Line, Column, sub_lon, coff, cfac, loff, lfac):
 
 # 결과 리스트 초기화
 result = []
-step = 10  # 데이터 밀도 유지
+step = 1  # 데이터 밀도 유지
 
 # 각 픽셀에 대해 위도/경도 변환 및 데이터 추출
 for y in range(0, dim_y, step):
