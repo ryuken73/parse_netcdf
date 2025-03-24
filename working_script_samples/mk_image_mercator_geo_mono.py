@@ -217,26 +217,27 @@ def generate_image_from_data(data, output_path, image_size=(600, 520), bounds=[6
 #     return bounds
 
 # steps = [4, 5, 8, 10]
-out_dir = r'D:\002.Code\099.study\deck.gl.test\public'
-steps = [1]
-for step in steps:
-#   data_file = f'gk2a_ami_le1b_ir105_ea020lc_202502281500_step{step}.json
-#   data_file='gk2a_ami_le1b_ir105_ea020lc_202503231410_202503232310_step1.json'
-#   data_file='gk2a_ami_le1b_ir105_fd020ge_202503200840_202503201740_step2.json'
-#   data_file='gk2a_ami_le1b_ir105_fd020ge_202503200840_202503201740_step4.json'
-  data_file='gk2a_ami_le1b_ir105_fd020ge_202503231250_202503232150_step3.json'
-  print('generate png for datafile:', data_file)
-  with open(data_file, 'r') as data_json:
-    data = json.load(data_json)
-    # output_path = Path(data_file).stem + '.png'
-    
-    output_path = Path(data_file).stem + '.png'
-    # bounds = generate_image_from_data(data, output_path, image_size=(600, 520))
-    # bounds = generate_image_from_data(data, output_path)
-    bounds = generate_image_from_data(data, output_path, image_size=(1200, 1024))
-    # bounds = generate_image_from_data(data, output_path, image_size=(2048, 2048))
-    # bounds = generate_image_from_data(data, output_path, image_size=(3192, 3192))
-    # bounds = generate_image_from_data(data, output_path, image_size=(4096, 4096))
-    # bounds = generate_image_from_data(data, output_path, image_size=(1500, 1500))
-    # bounds = generate_image_from_data(data, output_path, image_size=(1024, 768))
-    print(f"Image bounds: {bounds}")
+if __name__ == '__main__' :
+    out_dir = r'D:\002.Code\099.study\deck.gl.test\public'
+    steps = [1]
+    for step in steps:
+    #   data_file = f'gk2a_ami_le1b_ir105_ea020lc_202502281500_step{step}.json
+    #   data_file='gk2a_ami_le1b_ir105_ea020lc_202503231410_202503232310_step1.json'
+    #   data_file='gk2a_ami_le1b_ir105_fd020ge_202503200840_202503201740_step2.json'
+    #   data_file='gk2a_ami_le1b_ir105_fd020ge_202503200840_202503201740_step4.json'
+        data_file='gk2a_ami_le1b_ir105_fd020ge_202503231250_202503232150_step3.json'
+        print('generate png for datafile:', data_file)
+        with open(data_file, 'r') as data_json:
+            data = json.load(data_json)
+            # output_path = Path(data_file).stem + '.png'
+            
+            output_path = Path(data_file).stem + '.png'
+            # bounds = generate_image_from_data(data, output_path, image_size=(600, 520))
+            # bounds = generate_image_from_data(data, output_path)
+            bounds = generate_image_from_data(data, output_path, image_size=(1200, 1024))
+            # bounds = generate_image_from_data(data, output_path, image_size=(2048, 2048))
+            # bounds = generate_image_from_data(data, output_path, image_size=(3192, 3192))
+            # bounds = generate_image_from_data(data, output_path, image_size=(4096, 4096))
+            # bounds = generate_image_from_data(data, output_path, image_size=(1500, 1500))
+            # bounds = generate_image_from_data(data, output_path, image_size=(1024, 768))
+            print(f"Image bounds: {bounds}")
