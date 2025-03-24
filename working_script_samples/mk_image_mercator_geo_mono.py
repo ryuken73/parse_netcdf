@@ -33,6 +33,8 @@ def get_color_from_temperature(temp):
     }
     
     # Clamp temperature to valid range (20 to -90)
+    if temp > 20 or temp < -90 :
+        return [0, 0, 0, 0]
     temp = max(-90, min(20, temp))
     
     # Find the two closest key points for interpolation (considering sharp transitions)
@@ -140,8 +142,8 @@ def generate_image_from_data(data, output_path, image_size=(600, 520), bounds=[6
                     # position of point is off the range
                     image_data[i][j] = [0, 0, 0, 0]
                     continue
-            image_value = get_color_from_value(grid_values[i, j])
-            # image_value = get_color_from_temperature(grid_values[i, j])
+            # image_value = get_color_from_value(grid_values[i, j])
+            image_value = get_color_from_temperature(grid_values[i, j])
             if image_value == [0, 0, 0 ,0]:
                 left_value = image_data[i][j-1 if j > 1 else 0]
                 up_value = image_data[i-1 if i > 1 else 0][j]
@@ -219,8 +221,10 @@ out_dir = r'D:\002.Code\099.study\deck.gl.test\public'
 steps = [1]
 for step in steps:
 #   data_file = f'gk2a_ami_le1b_ir105_ea020lc_202502281500_step{step}.json
+#   data_file='gk2a_ami_le1b_ir105_ea020lc_202503231410_202503232310_step1.json'
 #   data_file='gk2a_ami_le1b_ir105_fd020ge_202503200840_202503201740_step2.json'
-  data_file='gk2a_ami_le1b_ir105_fd020ge_202503200840_202503201740_step4.json'
+#   data_file='gk2a_ami_le1b_ir105_fd020ge_202503200840_202503201740_step4.json'
+  data_file='gk2a_ami_le1b_ir105_fd020ge_202503231250_202503232150_step3.json'
   print('generate png for datafile:', data_file)
   with open(data_file, 'r') as data_json:
     data = json.load(data_json)
@@ -229,6 +233,10 @@ for step in steps:
     output_path = Path(data_file).stem + '.png'
     # bounds = generate_image_from_data(data, output_path, image_size=(600, 520))
     # bounds = generate_image_from_data(data, output_path)
-    # bounds = generate_image_from_data(data, output_path, image_size=(1200, 1024))
-    bounds = generate_image_from_data(data, output_path, image_size=(1200, 1200))
+    bounds = generate_image_from_data(data, output_path, image_size=(1200, 1024))
+    # bounds = generate_image_from_data(data, output_path, image_size=(2048, 2048))
+    # bounds = generate_image_from_data(data, output_path, image_size=(3192, 3192))
+    # bounds = generate_image_from_data(data, output_path, image_size=(4096, 4096))
+    # bounds = generate_image_from_data(data, output_path, image_size=(1500, 1500))
+    # bounds = generate_image_from_data(data, output_path, image_size=(1024, 768))
     print(f"Image bounds: {bounds}")
