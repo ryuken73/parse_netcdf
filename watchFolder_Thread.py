@@ -6,15 +6,18 @@ from watchdog.events import FileSystemEventHandler
 from datetime import datetime
 
 class FileWatcher(FileSystemEventHandler):
-    def __init__(self, callback):
+    def __init__(self, file_pattern, callback):
         self.pending_files = {}
         self.callback = callback
+        self.file_pattern = file_pattern
         self.lock = threading.Lock()  # 스레드 안전성 보장
 
     def on_created(self, event):
         if event.is_directory:
             return
         file_path = os.path.normpath(event.src_path)
+        if self.file_pattern != None and file_path.count(f'_{self.file_pattern}') == 0:
+            return
         with self.lock:
             if file_path not in self.pending_files:
                 print(f"파일 생성 감지: {file_path} at {datetime.now()}")
@@ -81,8 +84,8 @@ class FileWatcher(FileSystemEventHandler):
         else:
             print(f"작업 시작: {file_path} - 콜백이 없어요!")
 
-def start_watching(path_to_watch, callback=None):
-    event_handler = FileWatcher(callback)
+def start_watching(path_to_watch, file_pattern=None, callback=None):
+    event_handler = FileWatcher(file_pattern, callback)
     observer = Observer()
     observer.schedule(event_handler, path_to_watch, recursive=True)
     observer.start()

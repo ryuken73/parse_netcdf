@@ -43,21 +43,44 @@ _PLOT_BOUND = {
 }
 
 IMAGE_SIZE = {
-  # 'ea': (600, 520),
-  'ea': (800, 780),
-  'fd': (800, 780),
-  # 'ea': (1200, 1040),
+  'ea': {
+    'step4': (800, 700),
+    'step10': (800, 700),
+  },
+  'fd': {
+    'step3': (2048, 2048),
+    'step10': (1200, 1200),
+  }
 }
 
+# IMAGE_SIZE = {
+#   # 'ea': (600, 520),
+#   'ea': (800, 780),
+#   'fd': (800, 780),
+#   # 'ea': (1200, 1040),
+# }
+
 IMAGE_BOUNDS = {
-  'ea': [76.81183423919347, 11.369317564542508, 175.08747983767321, 61.93104770869447] ,
-  'fd': [76.81183423919347, 11.369317564542508, 175.08747983767321, 61.93104770869447] 
+  'ea': [76.81183423919347, 11.369317564542508, 175.08747983767321, 61.93104770869447],
+  'fd': [60, -80, 180, 80]
 }
 
 # Web Mercator 투영 정의
 web_mercator_crs = CRS.from_epsg("3857")  # EPSG:3857 (Web Mercator)
 wgs84_crs = CRS.from_epsg("4326")  # EPSG:4326 (WGS84)
 transformer_to_mercator = Transformer.from_crs(wgs84_crs, web_mercator_crs, always_xy=True)
+
+# 적절한 보간을 위해 포인트가 데이터 영역내의 결측데이터인지 여부를 판단
+def is_point_off_range(grid_values, i, j, height, width):
+    left_value = grid_values[i][j-1 if j > 1 else 0]
+    right_value = grid_values[i][j+1 if j < width-1 else width-1]
+    up_value = grid_values[i-1 if i > 1 else 0][j]
+    up_left = grid_values[i-1 if i > 1 else 0][j-1 if j > 1 else 0]
+    up_right = grid_values[i-1 if i > 1 else 0][j+1 if j < width-1 else width-1]
+    down_value = grid_values[i+1 if i < height-1 else height-1][j]
+    down_left = grid_values[i+1 if i < height-1 else height-1][j-1 if j > 1 else 0]
+    down_right = grid_values[i+1 if i < height-1 else height-1][j+1 if j < width-1 else width-1]
+    return left_value == -9999 and right_value == -9999 and up_value == -9999 and down_value == -9999 and up_left == -9999 and up_right == -9999 and down_left == -9999 and down_right == -9999
 
 # 색상 매핑 (검정-흰색 보간)
 def get_color_ir105_mono(value):
@@ -73,10 +96,6 @@ def get_color_ir105_mono(value):
     return [r, g, b, 255]  # RGBA
 
 def get_color_ir105_color(temp):
-    if temp == -9999:
-        return [0, 0, 0, 0]  # 투명
-        # print(f'fill red {value}')
-        return [255, 0, 0, 255]  # red
     # Define key color points and their RGB values based on the gradient
     colors = {
         20: [0, 0, 0],       # Black
@@ -92,8 +111,11 @@ def get_color_ir105_color(temp):
         -81: [128, 128, 128], # Gray (sharp transition from white at -80)
         -90: [128, 0, 128]    # Purple
     }
-    
+  
+    if temp > 20 or temp < -90 :
+        return [0, 0, 0, 0]    
     # Clamp temperature to valid range (20 to -90)
+
     temp = max(-90, min(20, temp))
     
     # Find the two closest key points for interpolation (considering sharp transitions)
@@ -128,11 +150,11 @@ get_color_func = {
    'color': get_color_ir105_color,
 }
 
-def save_to_image_ir105(data, output_path, nc_coverage, mode='mono'):
+def save_to_image_ir105(data, output_path, nc_coverage, step, mode='mono'):
     """
     주어진 [[lon, lat, value], ...] 데이터를 Web Mercator 투영을 반영하여 이미지로 변환.
     """
-    image_size = IMAGE_SIZE[nc_coverage]
+    image_size = IMAGE_SIZE[nc_coverage][f'step{step}']
     bounds = IMAGE_BOUNDS[nc_coverage]
     print(image_size)
     # 경계 설정 (WGS84 좌표)
@@ -173,20 +195,29 @@ def save_to_image_ir105(data, output_path, nc_coverage, mode='mono'):
     image_data = np.zeros((height, width, 4), dtype=np.uint8)
     for i in range(height):
         for j in range(width):
-            # if i < 100:
-            #     image_data[i, j] = [255, 255, 0, 255]
-                # continue
-            image_data[i, j] = get_color_func[mode](grid_values[i, j])
-            # if image_data[i, j][0] == 255:
-                # print(f"fill red {j} {j}")
+            if grid_values[i, j] == -9999:
+                if is_point_off_range(grid_values, i, j, height, width):
+                    # position of point is off the range
+                    image_data[i][j] = [0, 0, 0, 0]
+                    continue
+
+            image_value = get_color_func[mode](grid_values[i, j])
+            # 데이터 보간
+            if image_value == [0, 0, 0 ,0]:
+                left_value = image_data[i][j-1 if j > 1 else 0]
+                up_value = image_data[i-1 if i > 1 else 0][j]
+                image_value = np.mean([left_value,up_value], axis=0)
+                if image_value[0] == 0 and image_value[1] == 0 and image_value[2] == 0:
+                    image_value[3] = 0
+                else:
+                    image_value[3] = 255
+            image_data[i][j] = image_value
+            # image_data[i, j] = get_color_func[mode](grid_values[i, j])
     
     # 이미지를 PNG로 저장
     image = Image.fromarray(image_data, 'RGBA')
     image.save(output_path)
     print(f"Image saved to {output_path} with bounds: {bounds}")
-
-
-
 
 def get_params_lc(file_path, var_name, grid_mapping):
   try :
