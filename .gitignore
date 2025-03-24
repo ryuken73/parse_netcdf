@@ -10,3 +10,5 @@ working_script_samples/*.gz
 working_script_samples/*.json
 working_script_samples/*.nc
 working_script_samples/*.png
+*.ipynb
+.ipynb_checkpoints
