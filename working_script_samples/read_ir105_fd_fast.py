@@ -5,7 +5,8 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from PIL import Image
 from pyproj import Transformer, CRS
-from mk_image_mercator_geo_mono import generate_image_from_data
+# from mk_image_mercator_lcc_interpo_color import generate_image_from_data
+from mk_image_mercator_geo_color import generate_image_from_data
 
 step = 1
 
@@ -92,9 +93,9 @@ data_list = result.tolist()
 output_path = "output_image_fast.png"
 bounds = [60, -80, 180, 80]
 # generate_image_from_data(result, output_path, image_size=(2048, 2048), bounds=bounds)
-# generate_image_from_data(data_list, output_path, image_size=(2048, 2048), bounds=bounds)
+generate_image_from_data(data_list, output_path, image_size=(2048, 2048), bounds=bounds)
 # generate_image_from_data(data_list, output_path, image_size=(1200, 1200), bounds=bounds)
-generate_image_from_data(data_list, output_path, image_size=(3076, 3076), bounds=bounds)
+# generate_image_from_data(data_list, output_path, image_size=(3076, 3076), bounds=bounds)
 
 ds.close()
 
