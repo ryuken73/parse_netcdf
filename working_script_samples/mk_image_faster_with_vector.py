@@ -1,3 +1,6 @@
+# vector 연산을 기반으로 이미지를 빠르게 만드는 모듈
+# 보간은 없음 (보간 로직 만들기 어려움)
+
 import numpy as np
 from PIL import Image
 from pyproj import Transformer, CRS
@@ -40,42 +43,9 @@ def get_color_from_temperature(temp):
     b = int(start_color[2] + (end_color[2] - start_color[2]) * ratio)
     return [r, g, b, 255]
 
-def is_point_off_range(grid_values):
-    """
-    grid_values에서 각 픽셀이 주변 8방향 모두 -9999인지 확인하는 마스크 반환
-    """
-    height, width = grid_values.shape
-    off_range_mask = np.full((height, width), False, dtype=bool)
-
-    # 주변 8방향 값 추출 (경계 처리 포함)
-    left = np.roll(grid_values, 1, axis=1)
-    left[:, 0] = grid_values[:, 0]  # 왼쪽 경계 보정
-    right = np.roll(grid_values, -1, axis=1)
-    right[:, -1] = grid_values[:, -1]  # 오른쪽 경계 보정
-    up = np.roll(grid_values, 1, axis=0)
-    up[0, :] = grid_values[0, :]  # 위쪽 경계 보정
-    down = np.roll(grid_values, -1, axis=0)
-    down[-1, :] = grid_values[-1, :]  # 아래쪽 경계 보정
-    up_left = np.roll(up, 1, axis=1)
-    up_left[:, 0] = up[:, 0]
-    up_right = np.roll(up, -1, axis=1)
-    up_right[:, -1] = up[:, -1]
-    down_left = np.roll(down, 1, axis=1)
-    down_left[:, 0] = down[:, 0]
-    down_right = np.roll(down, -1, axis=1)
-    down_right[:, -1] = down[:, -1]
-
-    # 모든 주변 픽셀이 -9999인지 확인
-    off_range_mask = (
-        (left == -9999) & (right == -9999) & (up == -9999) & (down == -9999) &
-        (up_left == -9999) & (up_right == -9999) & (down_left == -9999) & (down_right == -9999)
-    )
-    return off_range_mask
-
 def generate_image_from_data_fast(data, output_path, image_size=(600, 520), bounds=[60, -80, 180, 80]):
     """
     NumPy 배열 [[lon, lat, value], ...] 데이터를 Web Mercator 투영으로 이미지 변환.
-    is_point_off_range 포함.
     """
     # 경계 설정
     lon_min, lat_min, lon_max, lat_max = bounds
@@ -111,26 +81,16 @@ def generate_image_from_data_fast(data, output_path, image_size=(600, 520), boun
 
     print('grid_values sample:', grid_values[600:800])
 
-    # is_point_off_range 적용
-    # off_range_mask = is_point_off_range(grid_values)
-
     # 색상 매핑을 위한 벡터화 함수
-    # def apply_color_mapping(values, off_mask):
     def apply_color_mapping(values):
         colors = np.zeros((height, width, 4), dtype=np.uint8)
         flat_values = values.flatten()
         flat_colors = np.array([get_color_from_temperature(val) if val != -9999 else [0, 0, 0, 0] 
                                 for val in flat_values])
-        # x = np.zeros((1200, 1200, 4), dtype=np.uint8)
-        # x[:] = [0, 0, 255, 255] 
-        # colors = x.reshape(height, width, 4)
         colors = flat_colors.reshape(height, width, 4)
-        # off_range인 경우 투명 처리
-        # colors[off_mask] = [0, 0, 0, 0]
         return colors
 
     # 이미지 데이터 생성
-    # image_data = apply_color_mapping(grid_values, off_range_mask)
     image_data = apply_color_mapping(grid_values)
     print('length of image_dat:', len(image_data))
     print('sample of image_dat:', image_data[:100])
@@ -140,7 +100,6 @@ def generate_image_from_data_fast(data, output_path, image_size=(600, 520), boun
     # PNG 저장
     image = Image.fromarray(image_data.astype(np.uint8), 'RGBA')
     image.save(output_path)
-    # image.show()
     print(f"Image saved to {output_path} with bounds: {bounds}")
     return bounds
 

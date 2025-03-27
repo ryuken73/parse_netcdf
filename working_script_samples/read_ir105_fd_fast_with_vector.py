@@ -1,3 +1,10 @@
+# ir105 fd nc파일 입력
+# np vector 연산으로 빠르게 np.array(lon, lat, value)생성 후
+# np vector 연산기반으로 이미지를 생성하는 generate_image_from_data_fast를
+# 사용하여 빠르게 이미지를 만듬
+# step1, 3192X3192가 소요시간(5분) 대비 품질이 괜찮음
+
+
 import netCDF4 as nc
 import numpy as np
 import matplotlib.pyplot as plt
@@ -98,8 +105,8 @@ bounds = [60, -80, 180, 80]
 # generate_image_from_data(data_list, output_path, image_size=(3076, 3076), bounds=bounds)
 # generate_image_from_data_fast(result, output_path, image_size=(2048, 2048), bounds=bounds)
 # generate_image_from_data_fast(result, output_path, image_size=(4096, 4096), bounds=bounds)
-# generate_image_from_data_fast(result, output_path, image_size=(3192, 3192), bounds=bounds)
-generate_image_from_data_fast(result, output_path, image_size=(2750, 2750), bounds=bounds)
+generate_image_from_data_fast(result, output_path, image_size=(3192, 3192), bounds=bounds)
+# generate_image_from_data_fast(result, output_path, image_size=(2750, 2750), bounds=bounds)
 
 ds.close()
 

@@ -93,9 +93,9 @@ data_list = result.tolist()
 output_path = "output_image_fast.png"
 bounds = [60, -80, 180, 80]
 # generate_image_from_data(result, output_path, image_size=(2048, 2048), bounds=bounds)
-generate_image_from_data(data_list, output_path, image_size=(2048, 2048), bounds=bounds)
+# generate_image_from_data(data_list, output_path, image_size=(2048, 2048), bounds=bounds)
 # generate_image_from_data(data_list, output_path, image_size=(1200, 1200), bounds=bounds)
-# generate_image_from_data(data_list, output_path, image_size=(3076, 3076), bounds=bounds)
+generate_image_from_data(data_list, output_path, image_size=(3192, 3192), bounds=bounds)
 
 ds.close()
 
