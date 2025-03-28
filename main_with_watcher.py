@@ -3,7 +3,7 @@ from parseNC import *
 from watchFolder_Thread import start_watching
 import sys
 
-target_coverage = 'ea' if sys.argv[1] == None else sys.argv[1]
+target_coverage = 'ea' if len(sys.argv) == 1 else sys.argv[1]
 print(f'watch filename with _{target_coverage}.')
 
 STEPS = {
@@ -14,7 +14,6 @@ SAVE_IMAGE_STEPS = {
   'ea': [4],
   'fd': [4]
 }
-
 
 GRID_MAPPING = {
   "kma_grid": 'gk2a_imager_projection', # if data is ctps, grid_mapping = gk2a_imager_projection
@@ -31,22 +30,24 @@ parse_func = {
   'ge': parseGeos
 }
 
-conversion_array = np.loadtxt('ir105_conversion_c.txt');
+conversion_mapping_table_file = 'ir105_conversion_c.txt'
+
+conversion_array = np.loadtxt(conversion_mapping_table_file)
+
 # steps = [3, 10, 8, 4]
-steps = [1]
-# out_dir = './jsonfiles'
+# steps = [1]
 out_dir = 'D:/002.Code/002.node/weather_api/data/weather/gk2a'
 use_index = 1
 
 ## nc 1개에 대해서 아래 파일들 생성
-## ea 파일 : 
+## ea 파일 (json + image)
 ##  gzip: step4, step8, step10 
-##  mono png(800X780): step4, step10
-##  color png(800X780): step4, step10
-## fd 파일 : 
-##  gzip: step3, step8, step10 
-##  mono png: step3(2048X2048), step10(1200X1200)
-##  color png(): step3(2048X2048), step10(1200X1200)
+##  mono png: step1(1500X1300, 1분, 1M), convert_1200X1040, convert_900X780
+##  color png: step1(1500X1300, 4분, 2M),convert_1200X1040, convert_900X780
+## fd 파일 (image only)
+##  gzip: none
+##  mono png: step1(3192X3192, 2분, 6M),  convert_2048, convert_1400
+##  color png: step1(3192X3192, 5분, 10M),  convert_2048, convert_1400
 
 def callback(nc_file):
   steps = STEPS[target_coverage]
@@ -66,11 +67,11 @@ def callback(nc_file):
 
       print("parse result Done:", len(parseResult))
       save_to_file(out_file, parseResult)
-      if step in SAVE_IMAGE_STEPS[nc_coverage]:
-        out_image_name_mono = f'{save_dir}/{Path(out_file).stem}_mono.png'
-        out_image_name_color = f'{save_dir}/{Path(out_file).stem}_color.png'
-        save_to_image_ir105(parseResult, out_image_name_mono, nc_coverage, step, mode='mono')
-        save_to_image_ir105(parseResult, out_image_name_color, nc_coverage, step, mode='color')
+      # if step in SAVE_IMAGE_STEPS[nc_coverage]:
+      #   out_image_name_mono = f'{save_dir}/{Path(out_file).stem}_mono.png'
+      #   out_image_name_color = f'{save_dir}/{Path(out_file).stem}_color.png'
+      #   save_to_image_ir105(parseResult, out_image_name_mono, nc_coverage, step, mode='mono')
+      #   save_to_image_ir105(parseResult, out_image_name_color, nc_coverage, step, mode='color')
       compress_file(out_file)
 
       # debug result

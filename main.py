@@ -16,10 +16,12 @@ parse_func = {
   'ge': parseGeos
 }
 
+conversion_mapping_table_file = 'ir105_conversion_c.txt'
+
 def nc_to_json(step):
   out_dir = './jsonfiles'
   parseResult = []
-  conversion_array = np.loadtxt('ir105_conversion_c.txt');
+  conversion_array = np.loadtxt(conversion_mapping_table_file)
   use_index = 1 #mono IR (use second column(brightness temperature))
 
   directory = Path("./ncfiles_temp")
