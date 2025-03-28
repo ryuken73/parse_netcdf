@@ -15,7 +15,7 @@ from pyproj import Transformer, CRS
 from mk_image_mercator_geo_color import generate_image_from_data
 from mk_image_faster_with_vector import generate_image_from_data_fast
 
-step = 1
+step = 3
 
 def load_conversion_table(file_path):
     conversion_table = []
@@ -103,9 +103,10 @@ bounds = [60, -80, 180, 80]
 # generate_image_from_data(data_list, output_path, image_size=(2048, 2048), bounds=bounds)
 # generate_image_from_data(data_list, output_path, image_size=(1200, 1200), bounds=bounds)
 # generate_image_from_data(data_list, output_path, image_size=(3076, 3076), bounds=bounds)
+generate_image_from_data_fast(result, output_path, image_size=(1500, 1500), bounds=bounds)
 # generate_image_from_data_fast(result, output_path, image_size=(2048, 2048), bounds=bounds)
 # generate_image_from_data_fast(result, output_path, image_size=(4096, 4096), bounds=bounds)
-generate_image_from_data_fast(result, output_path, image_size=(3192, 3192), bounds=bounds)
+# generate_image_from_data_fast(result, output_path, image_size=(3192, 3192), bounds=bounds)
 # generate_image_from_data_fast(result, output_path, image_size=(2750, 2750), bounds=bounds)
 
 ds.close()
