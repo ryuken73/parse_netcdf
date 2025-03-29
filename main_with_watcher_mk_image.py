@@ -3,6 +3,7 @@ from pathlib import Path
 from parseWithVectorNC import *
 from watchFolder_Thread import start_watching
 import sys
+import multiprocessing
 
 SAVE_IMAGE_STEPS = {
   'ea': [1, 5, 10],
@@ -59,10 +60,19 @@ def callback(nc_file):
   high_quality_image_name_color = f'{save_dir}/{Path(out_file).stem}_color.png'
   image_size = IMAGE_SIZE[nc_coverage][highest_step]
   bounds = BOUNDS[nc_coverage]
-  generate_image_from_data_fast(parse_result, high_quality_image_name_mono, image_size, bounds, color_mode='gray')
-  print('save high quality image[mono]:', high_quality_image_name_mono)
-  generate_image_from_data_fast(parse_result, high_quality_image_name_color, image_size, bounds, color_mode='color')
-  print('save high quality image[color]:', high_quality_image_name_color)
+  processes = []
+  # generate_image_from_data_fast(parse_result, high_quality_image_name_mono, image_size, bounds, color_mode='gray')
+  p1 = multiprocessing.Process(target=generate_image_from_data_fast, args=(parse_result, high_quality_image_name_mono, image_size, bounds, 'gray'))
+  processes.append(p1)
+  p1.start()
+  p2 = multiprocessing.Process(target=generate_image_from_data_fast, args=(parse_result, high_quality_image_name_color, image_size, bounds, 'color'))
+  processes.append(p2)
+  p2.start()
+  # generate_image_from_data_fast(parse_result, high_quality_image_name_color, image_size, bounds, color_mode='color')
+  for p in processes:
+    p.join()
+  print('saved high quality image[mono]:', high_quality_image_name_mono)
+  print('saved high quality image[color]:', high_quality_image_name_color)
 
   # make highest image using PIL
   print('start downgrade image quality')
