@@ -59,7 +59,7 @@ def callback(nc_file):
   steps = STEPS[target_coverage]
   for step in steps:
     print(f'processing file {nc_file}')
-    sub_dir = os.path.dirname(nc_file).split('\\')[-1:][0]
+    sub_dir = os.path.dirname(nc_file).split(config.OS_SEP)[-1:][0]
     print(f'sub_dir {sub_dir}')
     save_dir = f"{out_dir}/{sub_dir}"
     os.makedirs(save_dir, exist_ok=True)
