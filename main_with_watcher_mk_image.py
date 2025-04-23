@@ -2,8 +2,14 @@ import os
 from pathlib import Path
 from parseWithVectorNC import *
 from watchFolder_Thread import start_watching
+from config import get_config
 import sys
 import multiprocessing
+
+config = get_config()
+print(f'Running in {config.ENV} mode')
+print(f'OUT_PATH = {config.OUT_PATH}')
+print(f'WATCH_PATH = {config.WATCH_PATH}')
 
 SAVE_IMAGE_STEPS = {
   'ea': [1, 5, 10],
@@ -26,7 +32,8 @@ BOUNDS ={
   'fd': [60, -80, 180, 80]
 }
 
-out_dir = 'D:/002.Code/002.node/weather_api/data/weather/gk2a'
+# out_dir = 'D:/002.Code/002.node/weather_api/data/weather/gk2a'
+out_dir = config.OUT_PATH
 conversion_file = 'ir105_conversion_c.txt'
 use_index = 1
 
@@ -127,7 +134,6 @@ def callback(nc_file):
 #       continue
     
 if __name__ == '__main__' :
-  watch_path = r"D:\002.Code\002.node\weather_api\kma_fetch\data\weather\gk2a"
-  start_watching(watch_path, None, callback)
+  start_watching(config.WATCH_PATH, None, callback)
   # callback(rf'{watch_path}\2025-03-29\gk2a_ami_le1b_ir105_ea020lc_202503281500_202503290000.nc')
   # callback(rf'{watch_path}\2025-03-29\gk2a_ami_le1b_ir105_fd020ge_202503281500_202503290000.nc')

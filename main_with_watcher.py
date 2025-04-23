@@ -1,7 +1,13 @@
 from pathlib import Path
 from parseNC import *
 from watchFolder_Thread import start_watching
+from config import get_config
 import sys
+
+config = get_config()
+print(f'Running in {config.ENV} mode')
+print(f'OUT_PATH = {config.OUT_PATH}')
+print(f'WATCH_PATH = {config.WATCH_PATH}')
 
 target_coverage = 'ea' if len(sys.argv) == 1 else sys.argv[1]
 print(f'watch filename with _{target_coverage}.')
@@ -36,7 +42,7 @@ conversion_array = np.loadtxt(conversion_mapping_table_file)
 
 # steps = [3, 10, 8, 4]
 # steps = [1]
-out_dir = 'D:/002.Code/002.node/weather_api/data/weather/gk2a'
+out_dir = config.OUT_PATH
 use_index = 1
 
 ## nc 1개에 대해서 아래 파일들 생성
@@ -118,8 +124,7 @@ def callback(nc_file):
 #       continue
     
 if __name__ == '__main__' :
-  watch_path = r"D:\002.Code\002.node\weather_api\kma_fetch\data\weather\gk2a"
-  start_watching(watch_path, target_coverage, callback)
+  start_watching(config.WATCH_PATH, target_coverage, callback)
 
 
 
