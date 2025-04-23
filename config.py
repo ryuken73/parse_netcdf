@@ -2,7 +2,8 @@ import os
 from dotenv import load_dotenv
 
 # 환경 변수 로드
-env = os.getenv("ENV", "development")  # 기본값은 development
+env = os.getenv("ENV", "dev")  # 기본값은 development
+print('xxx', env)
 load_dotenv(f".env.{env}")
 
 class Config:
