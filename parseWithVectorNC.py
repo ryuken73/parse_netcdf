@@ -48,7 +48,29 @@ def get_color_from_temperature(temp):
     b = int(start_color[2] + (end_color[2] - start_color[2]) * ratio)
     return [r, g, b, 255]
 
-def get_mono_color_from_temperature(value):
+def get_mono_color_from_temperature(value, factor=5):
+    if value == -9999:
+        return [0, 0, 0, 0]  # 투명
+    
+    t_min, t_max = -100, 30
+    ratio = min(max((value - t_min) / (t_max - t_min), 0), 1)
+    
+    # 기본 밝기 계산 (원래 함수와 동일)
+    base_r = (1 - ratio)  # 0.0 ~ 1.0
+    base_g = (1 - ratio)
+    base_b = (1 - ratio)
+    
+    # 밝기 조정: factor에 따라 밝기를 증폭 (1~10)
+    # factor가 1일 때는 원래 밝기, 10일 때는 최대 밝기에 가깝게
+    brightness_boost = 1 + (factor - 1) * 0.2  # factor 1 -> 1.0, factor 10 -> 2.8
+    r = int(min(255 * base_r * brightness_boost, 255))
+    g = int(min(255 * base_g * brightness_boost, 255))
+    b = int(min(255 * base_b * brightness_boost, 255))
+    alpha = int(min(255 * (base_r+base_g+base_b)/3 * brightness_boost, 255))
+    # alpha = int(min(255 * (r+g+b)/3 * brightness_boost, 255))
+    return [r, g, b, alpha]  # RGBA
+
+def get_mono_color_from_temperature_old(value):
     if value == -9999:
         return [0, 0, 0, 0]  # 투명
         # print(f'fill red {value}')
