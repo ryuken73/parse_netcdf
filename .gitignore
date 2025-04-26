@@ -12,3 +12,4 @@ working_script_samples/*.nc
 working_script_samples/*.png
 *.ipynb
 .ipynb_checkpoints
+logs

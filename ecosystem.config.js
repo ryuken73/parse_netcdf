@@ -2,39 +2,39 @@ module.exports = {
   apps: [
     {
       name: "watcher",
-      script: "main_with_watcher.py",
+      script: "./main_with_watcher.py",
       interpreter: "python3",
-      env: {
-        ENV: "production",
-        NODE_ENV: "production"
-      },
-      env_file: ".env.prod",
+      exec_mode: "fork",
+      instances: 1,
       autorestart: true,
       watch: false,
+      env_file: ".env.prod",
       log_date_format: "YYYY-MM-DD HH:mm Z",
       error_file: "./logs/prod-error.log",
       out_file: "./logs/prod-out.log",
       time: true,
-      instances: 1,
-      exec_mode: "cluster"
+      env: {
+        ENV: "prod",
+        NODE_ENV: "production"
+      },
     },
     {
-      name: "watcher_mk_image",
-      script: "main_with_watcher_mk_image.py",
+      name: "watcher_image",
+      script: "./main_with_watcher_mk_image.py",
       interpreter: "python3",
-      env: {
-        ENV: "production",
-        NODE_ENV: "production"
-      },
-      env_file: ".env.prod",
+      exec_mode: "fork",
+      instances: 1,
       autorestart: true,
       watch: false,
+      env_file: ".env.prod",
       log_date_format: "YYYY-MM-DD HH:mm Z",
       error_file: "./logs/prod-error.log",
       out_file: "./logs/prod-out.log",
       time: true,
-      instances: 1,
-      exec_mode: "cluster"
-    }
+      env: {
+        ENV: "prod",
+        NODE_ENV: "production"
+      },
+    },
   ]
 };
