@@ -13,3 +13,4 @@ working_script_samples/*.png
 *.ipynb
 .ipynb_checkpoints
 logs
+assets

@@ -16,7 +16,7 @@ from mk_image_mercator_geo_color import generate_image_from_data
 # from mk_image_faster_with_vector import generate_image_from_data_fast
 from mk_image_faster_with_vector_last import generate_image_from_data_fast
 
-step = 3
+step = 1
 
 def load_conversion_table(file_path):
     conversion_table = []
@@ -55,8 +55,8 @@ valid_lon_mask = (sampled_lon >= -180) & (sampled_lon <= 180)  # 유효한 경�
 adjusted_lon = np.where(valid_lon_mask, sampled_lon, np.nan)  # 비정상 값은 NaN으로 처리
 adjusted_lon = np.where(adjusted_lon < 0, adjusted_lon + 360, adjusted_lon)  # -180~0도를 180~360도로 변환
 
-# 위경도 범위 마스크 적용: 경도 범위를 40~220도로 확장
-latlon_mask = (sampled_lat >= -80) & (sampled_lat <= 80) & (adjusted_lon >= 30) & (adjusted_lon <= 220)
+# 위경도 범위 마스크 적용: 경도 범위를 50~230도로 확장
+latlon_mask = (sampled_lat >= -80) & (sampled_lat <= 80) & (adjusted_lon >= 30) & (adjusted_lon <= 230)
 final_mask = latlon_mask
 
 # 변환 테이블 적용
@@ -90,48 +90,19 @@ print("Latitude 범위 (result):", np.min(lats) if lats.size > 0 else "No valid 
 print("180도를 넘는 경도 값 개수:", np.sum(lons > 180), "개")
 print("샘플 데이터:", result[:5])
 
-# 데이터를 경도 기준으로 두 그룹으로 분리
-# 그룹 1: 경도 40~180도
-mask_40_to_180 = (lons >= 40) & (lons <= 180)
-result_40_to_180 = result[mask_40_to_180]
+# 경도 범위와 이미지 크기 비율 조정
+lon_range = 230 - 30  # 경도 범위: 180도
+lat_range = 80 - (-80)  # 위도 범위: 160도
+aspect_ratio = lon_range / lat_range  # 경도:위도 비율 = 180/160 = 1.125
+image_width = 1500
+image_height = int(image_width / aspect_ratio)  # 비율에 맞춰 높이 조정
 
-# 그룹 2: 경도 180~220도
-mask_180_to_220 = (lons > 180) & (lons <= 220)
-result_180_to_220 = result[mask_180_to_220]
+data_list = result.tolist()
 
-# 디버깅: 각 그룹의 데이터 크기 확인
-print("경도 40~180도 데이터 개수:", len(result_40_to_180))
-print("경도 180~220도 데이터 개수:", len(result_180_to_220))
-
-# 이미지 크기 비율 조정 (각 그룹별로 별도 계산)
-# 경도 40~180도
-lon_range_40_to_180 = 180 - 40  # 130도
-lat_range = 80 - (-80)  # 160도
-aspect_ratio_40_to_180 = lon_range_40_to_180 / lat_range  # 130/160 = 0.8125
-image_width_40_to_180 = 2610
-image_height_40_to_180 = 3360
-
-# 경도 180~220도
-lon_range_180_to_220 = 220 - 180  # 40도
-aspect_ratio_180_to_220 = lon_range_180_to_220 / lat_range  # 40/160 = 0.3125
-image_width_180_to_220 = 750
-image_height_180_to_220 = 3360
-
-# PNG 이미지 생성: 두 개의 이미지를 각각 생성
-# 1. 경도 40~180도
-output_path_40_to_180 = "output_image_40_to_180.png"
-bounds_40_to_180 = [40, -80, 180, 80]
-print(f"이미지 크기 (40~180도, width, height): ({image_width_40_to_180}, {image_height_40_to_180})")
-generate_image_from_data_fast(result_40_to_180, output_path_40_to_180, 
-                              image_size=(image_width_40_to_180, image_height_40_to_180), 
-                              bounds=bounds_40_to_180)
-
-# 2. 경도 180~220도
-output_path_180_to_220 = "output_image_180_to_220.png"
-bounds_180_to_220 = [180, -80, 220, 80]  # 경도 180~220도를 -180~180도로 변환
-print(f"이미지 크기 (180~220도, width, height): ({image_width_180_to_220}, {image_height_180_to_220})")
-generate_image_from_data_fast(result_180_to_220, output_path_180_to_220, 
-                              image_size=(image_width_180_to_220, image_height_180_to_220), 
-                              bounds=bounds_180_to_220)
+# PNG 이미지 생성: bounds와 이미지 크기 조정
+output_path = "output_image_fast_w_vector.png"
+bounds = [40, -80, 230, 80]  # 경도 범위를 50~230도로 유지
+print(f"이미지 크기 (width, height): ({image_width}, {image_height})")
+generate_image_from_data_fast(result, output_path, image_size=(image_width, image_height), bounds=bounds)
 
 ds.close()

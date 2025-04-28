@@ -15,6 +15,8 @@ web_mercator_crs = CRS.from_epsg("3857")
 wgs84_crs = CRS.from_epsg("4326")
 transformer_to_mercator = Transformer.from_crs(wgs84_crs, web_mercator_crs, always_xy=True)
 
+LAT_LON_NC_FILE = './assets/gk2a_ami_fd020ge_latlon.nc'
+
 # get_color_from_temperature 함수 (기존과 동일)
 def get_color_from_temperature(temp):
     colors = {
@@ -90,27 +92,37 @@ def generate_image_from_data_fast(data, output_path, image_size=(600, 520), boun
     lon_min, lat_min, lon_max, lat_max = bounds
     width, height = image_size
 
-    # WGS84 -> Web Mercator 변환
-    x_min, y_max = transformer_to_mercator.transform(lon_min, lat_max)
-    x_max, y_min = transformer_to_mercator.transform(lon_max, lat_min)
-    if x_max < 0:
-        x_max = 2 * 20037508.342789244 + x_max  # 음수 보정
-    print(f"x_min, x_max", x_min, x_max)
-    print(f"y_min, y_max", y_min, y_max)
-
-    # 픽셀 간격 계산
-    x_step = (x_max - x_min) / (width - 1)
-    y_step = (y_max - y_min) / (height - 1)
-    print(f"x_step", x_step)
-    print(f"y_step", y_step)
-
     # 데이터 분리
     lons = data[:, 0]
     lats = data[:, 1]
     values = data[:, 2]
 
+    # 경도 180도를 넘는 경우 처리: Web Mercator 투영을 위해 -180~180도로 변환
+    lons_for_transform = np.where(lons > 180, lons - 360, lons)
+
     # Web Mercator로 변환
-    x, y = transformer_to_mercator.transform(lons, lats)
+    x, y = transformer_to_mercator.transform(lons_for_transform, lats)
+
+    # bounds의 경계 좌표도 변환
+    x_min, y_max = transformer_to_mercator.transform(lon_min if lon_min <= 180 else lon_min - 360, lat_max)
+    x_max, y_min = transformer_to_mercator.transform(lon_max if lon_max <= 180 else lon_max - 360, lat_min)
+
+    # 경도 180도를 넘는 경우 x 좌표 조정
+    # Web Mercator에서 180도를 넘는 경도는 x 좌표가 음수로 나타날 수 있으므로, 이를 양수로 변환
+    x = np.where(lons > 180, x + 2 * 20037508.342789244, x)  # 180도를 넘는 경우 x 좌표를 이어 붙임
+    if lon_max > 180:
+        x_max += 2 * 20037508.342789244  # bounds의 x_max도 조정
+
+    print(f"x_min, x_max:", x_min, x_max)
+    print(f"y_min, y_max:", y_min, y_max)
+
+    # 픽셀 간격 계산
+    x_step = (x_max - x_min) / (width - 1)
+    y_step = (y_max - y_min) / (height - 1)
+    print(f"x_step:", x_step)
+    print(f"y_step:", y_step)
+
+    # 이미지 좌표로 매핑
     cols = np.clip(((x - x_min) / x_step).astype(int), 0, width - 1)
     rows = np.clip(((y_max - y) / y_step).astype(int), 0, height - 1)
 
@@ -118,7 +130,8 @@ def generate_image_from_data_fast(data, output_path, image_size=(600, 520), boun
     grid_values = np.full((height, width), -9999, dtype=np.float32)
     grid_values[rows, cols] = values  # 값 매핑
 
-    print('grid_values sample:', grid_values[600:800])
+    print('grid_values sample:', grid_values[:5])
+    print("Image pixel values 범위:", np.min(grid_values), "to", np.max(grid_values))
 
     # 색상 매핑을 위한 벡터화 함수
     def apply_color_mapping(values):
@@ -158,73 +171,97 @@ def load_conversion_table(file_path):
 
 # get ir105_fd lon, lat, values from nc
 def read_ir105_fd_fast_with_vector (file_path, step, attr_to_get, conversion_file):
-  ds = nc.Dataset(file_path, 'r')
-  image_pixel_values = ds.variables[attr_to_get][:]
-  dim_y, dim_x = image_pixel_values.shape
-  print("image_pixel_values shape:", image_pixel_values.shape)
+    ds = nc.Dataset(file_path, 'r')
+    image_pixel_values = ds.variables[attr_to_get][:]
+    dim_y, dim_x = image_pixel_values.shape
+    print("image_pixel_values shape:", image_pixel_values.shape)
 
-  sub_lon = ds.getncattr('sub_longitude')
-  H = ds.getncattr('nominal_satellite_height')
-  a = ds.getncattr('earth_equatorial_radius')
-  b = ds.getncattr('earth_polar_radius')
-  cfac = ds.getncattr('cfac')
-  lfac = ds.getncattr('lfac')
-  coff = ds.getncattr('coff')
-  loff = ds.getncattr('loff')
+    # 제공된 NetCDF 파일에서 위경도 테이블 로드
+    latlon_ds = nc.Dataset(LAT_LON_NC_FILE)
+    lat = latlon_ds.variables['lat'][:]
+    lon = latlon_ds.variables['lon'][:]
+    latlon_ds.close()
 
-  y_indices = np.arange(0, dim_y, step)
-  x_indices = np.arange(0, dim_x, step)
-  Y, X = np.meshgrid(y_indices, x_indices, indexing='ij')
-  degtorad = np.pi / 180.0
-  x = degtorad * ((X - coff) * 2**16 / cfac)
-  y = degtorad * ((dim_y - Y - 1 - loff) * 2**16 / lfac)
-  cos_x = np.cos(x)
-  cos_y = np.cos(y)
-  sin_y = np.sin(y)
-  Sd = np.sqrt((42164.0 * cos_x * cos_y)**2 - (cos_y**2 + 1.006739501 * sin_y**2) * 1737122264)
-  valid_mask = Sd >= 0
-  Sn = np.where(valid_mask, (42164.0 * cos_x * cos_y - Sd) / (cos_y**2 + 1.006739501 * sin_y**2), np.nan)
-  S1 = 42164.0 - (Sn * cos_x * cos_y)
-  S2 = Sn * (np.sin(x) * cos_y)
-  S3 = -Sn * sin_y
-  Sxy = np.sqrt(S1**2 + S2**2)
-  lon = np.where(valid_mask, (np.arctan2(S2, S1) + sub_lon) / degtorad, np.nan)
-  lat = np.where(valid_mask, np.arctan2(1.006739501 * S3, Sxy) / degtorad, np.nan)
-  # latlon_mask = (lat >= -80) & (lat <= 80) & (lon >= -180) & (lon <= 190)
-  latlon_mask = (lat >= -80) & (lat <= 80) & (lon >= 60) & (lon <= 180)
-  final_mask = valid_mask & latlon_mask
+    # step을 적용한 인덱스 생성
+    y_indices = np.arange(0, dim_y, step)
+    x_indices = np.arange(0, dim_x, step)
+    Y, X = np.meshgrid(y_indices, x_indices, indexing='ij')
 
-  # 변환 테이블 적용
-  values = image_pixel_values[Y, X] 
-  lut = load_conversion_table(conversion_file)
+    # 인덱스를 사용해 위경도 배열 샘플링
+    sampled_lat = lat[Y, X]
+    sampled_lon = lon[Y, X]
 
-  # 마스크를 사용한 안전한 변환
-  mask = (values >= 0) & (values < len(lut))
-  converted_values = np.full_like(values, -9999, dtype=float)  # 기본값 -9999
-  converted_values[mask] = lut[values[mask]]  # 유효한 값만 변환
+    # 경도 변환: -180~0도 사이 값을 180~360도로 변환
+    valid_lon_mask = (sampled_lon >= -180) & (sampled_lon <= 180)  # 유효한 경도 값만 선택
+    adjusted_lon = np.where(valid_lon_mask, sampled_lon, np.nan)  # 비정상 값은 NaN으로 처리
+    adjusted_lon = np.where(adjusted_lon < 0, adjusted_lon + 360, adjusted_lon)  # -180~0도를 180~360도로 변환
 
-  print("Max value in converted_values:", np.max(converted_values))
-  print("Min value in converted_values:", np.min(converted_values))
+    # 위경도 범위 마스크 적용: 경도 범위를 50~230도로 확장
+    latlon_mask = (sampled_lat >= -80) & (sampled_lat <= 80) & (adjusted_lon >= 30) & (adjusted_lon <= 230)
+    final_mask = latlon_mask
 
-  # result에 converted_values 사용
-  result = np.column_stack([
-      lon[final_mask].astype(float),
-      lat[final_mask].astype(float),
-      converted_values[final_mask].astype(float)
-  ])
+    #   sub_lon = ds.getncattr('sub_longitude')
+    #   H = ds.getncattr('nominal_satellite_height')
+    #   a = ds.getncattr('earth_equatorial_radius')
+    #   b = ds.getncattr('earth_polar_radius')
+    #   cfac = ds.getncattr('cfac')
+    #   lfac = ds.getncattr('lfac')
+    #   coff = ds.getncattr('coff')
+    #   loff = ds.getncattr('loff')
 
-  # 디버깅 출력
-  lons = result[:, 0]
-  lats = result[:, 1]
-  print("Longitude 범위:", np.min(lons) if lons.size > 0 else "No valid points", 
-        "to", np.max(lons) if lons.size > 0 else "No valid points")
-  print("Latitude 범위:", np.min(lats) if lats.size > 0 else "No valid points", 
-        "to", np.max(lats) if lats.size > 0 else "No valid points")
-  print("샘플 데이터:", result[:5])
+    #   y_indices = np.arange(0, dim_y, step)
+    #   x_indices = np.arange(0, dim_x, step)
+    #   Y, X = np.meshgrid(y_indices, x_indices, indexing='ij')
+    #   degtorad = np.pi / 180.0
+    #   x = degtorad * ((X - coff) * 2**16 / cfac)
+    #   y = degtorad * ((dim_y - Y - 1 - loff) * 2**16 / lfac)
+    #   cos_x = np.cos(x)
+    #   cos_y = np.cos(y)
+    #   sin_y = np.sin(y)
+    #   Sd = np.sqrt((42164.0 * cos_x * cos_y)**2 - (cos_y**2 + 1.006739501 * sin_y**2) * 1737122264)
+    #   valid_mask = Sd >= 0
+    #   Sn = np.where(valid_mask, (42164.0 * cos_x * cos_y - Sd) / (cos_y**2 + 1.006739501 * sin_y**2), np.nan)
+    #   S1 = 42164.0 - (Sn * cos_x * cos_y)
+    #   S2 = Sn * (np.sin(x) * cos_y)
+    #   S3 = -Sn * sin_y
+    #   Sxy = np.sqrt(S1**2 + S2**2)
+    #   lon = np.where(valid_mask, (np.arctan2(S2, S1) + sub_lon) / degtorad, np.nan)
+    #   lat = np.where(valid_mask, np.arctan2(1.006739501 * S3, Sxy) / degtorad, np.nan)
+    #   # latlon_mask = (lat >= -80) & (lat <= 80) & (lon >= -180) & (lon <= 190)
+    #   latlon_mask = (lat >= -80) & (lat <= 80) & (lon >= 60) & (lon <= 180)
+    #   final_mask = valid_mask & latlon_mask
 
-  ds.close()
+    # 변환 테이블 적용
+    values = image_pixel_values[Y, X] 
+    lut = load_conversion_table(conversion_file)
 
-  return result
+    # 마스크를 사용한 안전한 변환
+    mask = (values >= 0) & (values < len(lut))
+    converted_values = np.full_like(values, -9999, dtype=float)  # 기본값 -9999
+    converted_values[mask] = lut[values[mask]]  # 유효한 값만 변환
+
+    print("Max value in converted_values:", np.max(converted_values))
+    print("Min value in converted_values:", np.min(converted_values))
+
+    # result에 converted_values 사용
+    result = np.column_stack([
+        adjusted_lon[final_mask].astype(float),
+        sampled_lat[final_mask].astype(float),
+        converted_values[final_mask].astype(float)
+    ])
+
+    # 디버깅 출력
+    lons = result[:, 0]
+    lats = result[:, 1]
+    print("Longitude 범위:", np.min(lons) if lons.size > 0 else "No valid points", 
+            "to", np.max(lons) if lons.size > 0 else "No valid points")
+    print("Latitude 범위:", np.min(lats) if lats.size > 0 else "No valid points", 
+            "to", np.max(lats) if lats.size > 0 else "No valid points")
+    print("샘플 데이터:", result[:5])
+
+    ds.close()
+
+    return result
 
 # get ir105_ea lon, lat, values from nc
 def read_ir105_ea_fast_with_vector(file_path, step, attr_to_get, conversion_file):
