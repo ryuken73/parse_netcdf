@@ -13,7 +13,8 @@ print(f'WATCH_PATH = {config.WATCH_PATH}')
 
 SAVE_IMAGE_STEPS = {
   'ea': [1, 5, 10],
-  'fd': [1, 5, 10]
+  'fd': [1, 5, 10],
+  'ko': [1, 5, 10]
 }
 IMAGE_SIZE = {
   'ea': {
@@ -27,11 +28,17 @@ IMAGE_SIZE = {
     1: (3192, 3192),
     5: (2048, 2048),
     10: (1400, 1400),
+  },
+  'ko': {
+    1: (800, 800),
+    5: (700, 700),
+    10: (600, 600),
   }
 }
 BOUNDS ={
   'ea': [76.81183423919347, 11.369317564542508, 175.08747983767321, 61.93104770869447],
-  'fd': [30, -80, 220, 80]
+  'fd': [30, -80, 220, 80],
+  'ko':  [113.99641, 29.312252, 138.003582, 45.728965]
 }
 
 # out_dir = 'D:/002.Code/002.node/weather_api/data/weather/gk2a'
@@ -47,6 +54,10 @@ use_index = 1
 ##  gzip: none
 ##  mono png: step1(3192X3192, 2분, 6M),  convert_2048, convert_1400
 ##  color png: step1(3192X3192, 5분, 10M),  convert_2048, convert_1400
+## ko 파일 (image only)
+##  gzip: none
+##  mono png: step1(800X800, , 500KB),  convert_700, convert_600
+##  color png: step1(800X800, , 600KB),  convert_700, convert_600
 
 def callback(nc_file):
   print(f'processing file {nc_file}')
@@ -61,7 +72,7 @@ def callback(nc_file):
   out_file = get_json_fname(save_dir, nc_file, highest_step)
   attr_to_get = 'image_pixel_values'
   global parse_result
-  if nc_coverage == 'ea':
+  if nc_coverage == 'ea' or nc_coverage == 'ko':
     parse_result = read_ir105_ea_fast_with_vector(nc_file, highest_step, attr_to_get, conversion_file)
   else:
     parse_result = read_ir105_fd_fast_with_vector(nc_file, highest_step, attr_to_get, conversion_file)
