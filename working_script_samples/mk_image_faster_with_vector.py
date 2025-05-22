@@ -13,7 +13,7 @@ transformer_to_mercator = Transformer.from_crs(wgs84_crs, web_mercator_crs, alwa
 # get_color_from_temperature 함수 (기존과 동일)
 def get_color_from_temperature(temp):
     colors = {
-        20: [0, 0, 0], -20: [255, 255, 255], -21: [135, 206, 235], -30: [0, 0, 255],
+        20: [255,255,255], -20: [255, 255, 255], -21: [135, 206, 235], -30: [0, 0, 255],
         -40: [0, 255, 0], -45: [144, 238, 144], -50: [255, 255, 0], -60: [255, 0, 0],
         -70: [0, 0, 0], -80: [255, 255, 255], -81: [128, 128, 128], -90: [128, 0, 128]
     }
@@ -41,7 +41,8 @@ def get_color_from_temperature(temp):
     r = int(start_color[0] + (end_color[0] - start_color[0]) * ratio)
     g = int(start_color[1] + (end_color[1] - start_color[1]) * ratio)
     b = int(start_color[2] + (end_color[2] - start_color[2]) * ratio)
-    return [r, g, b, 255]
+    alpha = (20 - temp) * (255 / 40) if temp > -20 else 255
+    return [r, g, b, alpha]
 
 # def get_mono_color_from_value(value):
 #     if value == -9999:

@@ -48,7 +48,8 @@ def get_color_from_temperature(temp):
     r = int(start_color[0] + (end_color[0] - start_color[0]) * ratio)
     g = int(start_color[1] + (end_color[1] - start_color[1]) * ratio)
     b = int(start_color[2] + (end_color[2] - start_color[2]) * ratio)
-    return [r, g, b, 255]
+    alpha = (20 - temp) * (255 / 40) if temp > -20 else 255
+    return [r, g, b, alpha]
 
 def get_mono_color_from_temperature(value, factor=5):
     if value == -9999:

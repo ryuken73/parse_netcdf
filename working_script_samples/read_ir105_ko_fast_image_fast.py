@@ -8,7 +8,7 @@ import cartopy.feature as cfeature
 from mk_image_faster_with_vector import generate_image_from_data_fast
 
 # NetCDF 파일 경로
-file_path = 'gk2a_ami_le1b_ir105_ko020lc_202505021400_202505022300.nc'
+file_path = 'gk2a_ami_le1b_ir105_ko020lc_202505220730_202505221630.nc'
 
 # 파일 열기
 ds = nc.Dataset(file_path, 'r')
@@ -106,10 +106,11 @@ print("샘플 데이터:", result[:5])
 # 파일 닫기
 
 # PNG 파일로 저장
-output_path = "output_image_fast_w_vector_ko_mono.png"
+output_path = "output_image_fast_w_vector_ko_color.png"
 # ea_bounds = [76.81183423919347, 11.369317564542508, 175.08747983767321, 61.93104770869447]
 ko_bounds = [113.99641, 29.312252, 138.003582, 45.728965]
 generate_image_from_data_fast(result, output_path, image_size=(800, 800), bounds=ko_bounds)
+# generate_image_from_data_fast(result, output_path, image_size=(900, 900), bounds=ko_bounds)
 
 # ds.close()
 
