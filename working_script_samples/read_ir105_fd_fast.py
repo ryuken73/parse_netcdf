@@ -21,7 +21,7 @@ def load_conversion_table(file_path):
 
 # NetCDF 파일 열기 및 처리
 file_path = 'gk2a_ami_le1b_ir105_fd020ge_202503232320_202503240820.nc'
-ds = nc.Dataset(file_path, 'r')
+ds = nc.Dataset(file_path, format='NETCDF4')
 image_pixel_values = ds.variables['image_pixel_values'][:]
 dim_y, dim_x = image_pixel_values.shape
 print("image_pixel_values shape:", image_pixel_values.shape)

@@ -8,7 +8,7 @@ import cartopy.feature as cfeature
 
 # NetCDF 파일 열기
 file_path = r"ctps_ea_lc_202502170000.nc"
-ds = nc.Dataset(file_path, "r")
+ds = nc.Dataset(file_path, format='NETCDF4')
 
 # CTT 데이터 읽기 (원래 ushort 값, 자동 스케일링 비활성화)
 # ctt_values = ds.variables["CTT"][:, :].data  # raw data로 읽기

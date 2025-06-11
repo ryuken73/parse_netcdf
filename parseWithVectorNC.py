@@ -172,13 +172,13 @@ def load_conversion_table(file_path):
 
 # get ir105_fd lon, lat, values from nc
 def read_ir105_fd_fast_with_vector (file_path, step, attr_to_get, conversion_file):
-    ds = nc.Dataset(file_path, 'r')
+    ds = nc.Dataset(file_path, format='NETCDF4')
     image_pixel_values = ds.variables[attr_to_get][:]
     dim_y, dim_x = image_pixel_values.shape
     print("image_pixel_values shape:", image_pixel_values.shape)
 
     # 제공된 NetCDF 파일에서 위경도 테이블 로드
-    latlon_ds = nc.Dataset(LAT_LON_NC_FILE)
+    latlon_ds = nc.Dataset(LAT_LON_NC_FILE, format='NETCDF4')
     lat = latlon_ds.variables['lat'][:]
     lon = latlon_ds.variables['lon'][:]
     latlon_ds.close()
@@ -267,6 +267,7 @@ def read_ir105_fd_fast_with_vector (file_path, step, attr_to_get, conversion_fil
 # get ir105_ea lon, lat, values from nc
 def read_ir105_ea_fast_with_vector(file_path, step, attr_to_get, conversion_file):
   # 파일 열기
+  print('execute nc.Dataset')
   ds = nc.Dataset(file_path, 'r')
 
   # 이미지 픽셀 값과 차원 가져오기

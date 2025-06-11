@@ -45,7 +45,7 @@ file_path = r"D:\002.Code\001.python\netcdf\ir105_fd_ge_202502170000.nc"
 step = 1000  # 샘플링 간격
 
 # .nc 파일 열기
-dataset = nc.Dataset(file_path, 'r')
+dataset = nc.Dataset(file_path, format='NETCDF4')
 
 # 이미지 데이터 읽기
 image_pixel_values = dataset.variables['image_pixel_values'][:]

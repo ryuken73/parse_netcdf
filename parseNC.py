@@ -222,7 +222,7 @@ def save_to_image_ir105(data, output_path, nc_coverage, step, mode='mono'):
 def get_params_lc(file_path, var_name, grid_mapping):
   try :
     print('open file:', file_path)
-    ds = nc.Dataset(file_path, 'r')
+    ds = nc.Dataset(file_path, format='NETCDF4')
 
     attr_raw = ds.variables[var_name][:]
     dim_y, dim_x = attr_raw.shape
@@ -299,7 +299,7 @@ def parseLc(step, dim_x, dim_y, attr_raw, projAttrs, conversion_array=None, use_
 
 def get_params_geos(file_path, var_name, grid_mapping):
   # NetCDF 파일 열기
-  ds = nc.Dataset(file_path, 'r')
+  ds = nc.Dataset(file_path, format='NETCDF4')
 
   # 이미지 픽셀 값과 차원 가져오기
   # ctt_raw = ds.variables['CTT'][:]  # CTT 데이터 (raw 값)

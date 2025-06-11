@@ -8,7 +8,7 @@ import cartopy.feature as cfeature
 
 file_path = 'gk2a_ami_le1b_ir105_ea020lc_202502281500.nc'
 
-ds = nc.Dataset(file_path, 'r')
+ds = nc.Dataset(file_path, format='NETCDF4')
 
 
 # lat = dataset.variables['lat'][:]

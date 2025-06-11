@@ -10,7 +10,7 @@ import cartopy.feature as cfeature
 file_path = 'ir105_fd_ge_202502170000.nc'
 
 # NetCDF 파일 열기
-ds = nc.Dataset(file_path, 'r')
+ds = nc.Dataset(file_path, format='NETCDF4')
 
 # 이미지 픽셀 값과 차원 가져오기
 image_pixel_values = ds.variables['image_pixel_values'][:]

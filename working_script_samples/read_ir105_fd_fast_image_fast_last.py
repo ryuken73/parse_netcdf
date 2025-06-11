@@ -29,14 +29,14 @@ def load_conversion_table(file_path):
 
 # NetCDF 파일 열기 및 처리
 file_path = 'gk2a_ami_le1b_ir105_fd020ge_202503232320_202503240820.nc'
-ds = nc.Dataset(file_path, 'r')
+ds = nc.Dataset(file_path, format='NETCDF4')
 image_pixel_values = ds.variables['image_pixel_values'][:]
 # 원본 코드에서 이미지 데이터 크기 확인
 dim_y, dim_x = image_pixel_values.shape
 print("image_pixel_values shape:", image_pixel_values.shape)
 
 # 제공된 NetCDF 파일에서 위경도 테이블 로드
-latlon_ds = nc.Dataset('C:/Users/USER/Downloads/gk2a_ami_fd020ge_latlon.nc')
+latlon_ds = nc.Dataset('C:/Users/USER/Downloads/gk2a_ami_fd020ge_latlon.nc', format='NETCDF4')
 lat = latlon_ds.variables['lat'][:]
 lon = latlon_ds.variables['lon'][:]
 latlon_ds.close()

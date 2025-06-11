@@ -11,7 +11,7 @@ from mk_image_faster_with_vector import generate_image_from_data_fast
 file_path = 'gk2a_ami_le1b_ir105_ko020lc_202505220730_202505221630.nc'
 
 # 파일 열기
-ds = nc.Dataset(file_path, 'r')
+ds = nc.Dataset(file_path, format='NETCDF4')
 
 def load_conversion_table(file_path):
     conversion_table = []
