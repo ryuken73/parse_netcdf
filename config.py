@@ -9,7 +9,9 @@ load_dotenv(f".env.{env}")
 class Config:
   ENV = os.getenv("ENV")
   OUT_PATH = os.getenv("OUT_PATH")
+  OUT_PATH_RDR = os.getenv("OUT_PATH_RDR")
   WATCH_PATH = os.getenv("WATCH_PATH")
+  WATCH_PATH_RDR = os.getenv("WATCH_PATH_RDR")
   OS_SEP = os.getenv("OS_SEP")
 
 # 환경에 따른 설정 가져오기

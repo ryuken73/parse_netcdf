@@ -9,6 +9,9 @@ import cartopy.feature as cfeature
 from pathlib import Path
 from PIL import Image
 from pyproj import Transformer, CRS
+from matplotlib.colors import ListedColormap, BoundaryNorm, Normalize
+from rasterio.transform import Affine
+from rasterio.warp import calculate_default_transform, reproject, Resampling
 
 # Web Mercator 투영 정의
 web_mercator_crs = CRS.from_epsg("3857")
@@ -370,6 +373,98 @@ def resize_image(src_image_path, target_image_path, target_resolution):
   with Image.open(src_image_path) as src_img:
     resized = src_img.resize(target_resolution, Image.Resampling.LANCZOS)
     resized.save(target_image_path)
+
+# 데이터 크기 설정
+rdr_nx = 2305
+rdr_ny = 2881
+
+def read_RDR_bin(file_path):
+
+  # .bin 파일 읽기
+  with open(file_path, 'rb') as f:
+    bytes = f.read()
+
+  rain_rate = np.frombuffer(
+    bytes,
+    dtype=np.int16,
+    offset=1024
+  ).astype(np.float32).reshape(rdr_ny, rdr_nx)
+
+  null_mask = (rain_rate <= -30000)
+  rain_rate[null_mask] = np.nan
+  rain_rate /= 100
+  # 컬러맵 및 정규화 설정
+  colormap_rain = ListedColormap(np.array([
+      [0, 200, 255, 0], [0, 155, 245, 255], [0, 74, 245, 255],  # 하늘색
+      [0, 255, 0, 255], [0, 190, 0, 255], [0, 140, 0, 255], [0, 90, 0, 255],        # 초록색
+      [255, 255, 0, 255], [255, 220, 31, 255], [249, 205, 0, 255], [224, 185, 0, 255], [204, 170, 0, 255],  # 노랑색
+      [255, 102, 0, 255], [255, 50, 0, 255], [210, 0, 0, 255], [180, 0, 0, 255],    # 빨간색
+      [224, 169, 255, 255], [201, 105, 255, 255], [179, 41, 255, 255], [147, 0, 228, 255],  # 보라색
+      [179, 180, 222, 255], [76, 78, 177, 255], [0, 3, 144, 255], [51, 51, 51, 255], [51, 51, 51, 255]  # 파란색
+  ]) / 255)
+  colormap_rain.set_bad([0, 0, 0, 0])
+
+  bounds = np.array([
+      0, 0.1, 0.5, 1,  # 하늘색
+      2, 3, 4, 5,      # 초록색
+      6, 7, 8, 9, 10,  # 노랑색
+      15, 20, 25, 30,  # 빨간색
+      40, 50, 60, 70,  # 보라색
+      90, 110, 150     # 파란색
+  ])
+
+  # norm = BoundaryNorm(boundaries=bounds, ncolors=len(colormap_rain.colors))
+
+  # 컬러 배열 생성
+  colored_array = BoundaryNorm(boundaries=bounds, ncolors=len(colormap_rain.colors))(rain_rate)
+  colored_array = Normalize(0, len(colormap_rain.colors))(colored_array)
+  colored_array[null_mask] = np.nan
+  colored_array = (colormap_rain(colored_array) * 255).astype(np.uint8)
+  return colored_array
+
+def reproject_RDR(colored_array):    
+  # 좌표계 변환 준비
+  source_width = rdr_nx
+  source_height = rdr_ny
+  source_center_x = 1121
+  source_center_y = 1681
+  source_resolution = 500
+
+  source_crs = "+proj=lcc +lat_1=30 +lat_2=60 +lat_0=38 +lon_0=126 +x_0=0 +y_0=0 +ellps=WGS84 +units=m +no_defs"
+  source_transform = Affine.scale(source_resolution, source_resolution) * Affine.translation(-source_center_x, -source_center_y)
+
+  source_bounds = {
+      'left': -source_center_x * source_resolution,
+      'bottom': (source_height - source_center_y) * source_resolution,
+      'right': (source_width - source_center_x) * source_resolution,
+      'top': -source_center_y * source_resolution
+  }
+
+  # Web Mercator로 변환
+  dest_transform, dest_width, dest_height = calculate_default_transform(
+      src_crs=source_crs,
+      dst_crs='EPSG:3857',
+      width=source_width,
+      height=source_height,
+      **source_bounds,
+  )
+
+  converted_array = np.ones((dest_height, dest_width, 4), dtype=np.uint8)
+
+  for i in range(4):
+      reproject(
+          source=colored_array[:, :, i],
+          destination=converted_array[:, :, i],
+          src_transform=source_transform,
+          src_crs=source_crs,
+          dst_transform=dest_transform,
+          dst_crs='EPSG:3857',
+          resampling=Resampling.nearest,
+      )
+  print(converted_array.shape)
+  return converted_array
+
+   
 
 
 
