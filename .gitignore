@@ -13,6 +13,8 @@ working_script_samples/*.png
 working_script_samples/*.txt
 working_script_samples/*.awk
 working_script_samples/*.sh
+working_script_samples/*.bin
+working_script_samples/*.bin_1
 *.ipynb
 .ipynb_checkpoints
 logs
