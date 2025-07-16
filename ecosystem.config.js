@@ -53,6 +53,22 @@ module.exports = {
       },
     },
     {
+      name: "kma_fetch_rdr",
+      script: "/home/sbs/node_project/weather_server/kma_fetch/run_watcher_prod_RDR.sh",
+      interpreter: "bash",
+      exec_mode: "fork",
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      log_date_format: "YYYY-MM-DD HH:mm Z",
+      error_file: "./logs/kma-fetch-rdr-error.log",
+      out_file: "./logs/kma-fetch-rdr-out.log",
+      time: true,
+      env: {
+        NODE_ENV: "production",
+      },
+    },
+    {
       name: "weather_api",
       script: "/home/sbs/node_project/weather_server/server.js",
       exec_mode: "fork",
@@ -64,7 +80,7 @@ module.exports = {
       out_file: "./logs/weather_api_out.log",
       time: true,
       env: {
-	MODE: "prod",
+      MODE: "prod",
         ROOT_DIR_PROD: "/data/node_project/weather_data/out_data",
         ROOT_DIR_DEV: "D:/002.Code/002.node/weather_api/data/weather"
 
