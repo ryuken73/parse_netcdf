@@ -65,8 +65,8 @@ module.exports = {
       time: true,
       env: {
 	MODE: "prod",
-        ROOT_DIR_PROD: "/data/node_project/weather_data/out_data/gk2a",
-        ROOT_DIR_DEV: "D:/002.Code/002.node/weather_api/data/weather/gk2a"
+        ROOT_DIR_PROD: "/data/node_project/weather_data/out_data",
+        ROOT_DIR_DEV: "D:/002.Code/002.node/weather_api/data/weather"
 
       },
     },

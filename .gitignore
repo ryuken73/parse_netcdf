@@ -10,6 +10,9 @@ working_script_samples/*.gz
 working_script_samples/*.json
 working_script_samples/*.nc
 working_script_samples/*.png
+working_script_samples/*.txt
+working_script_samples/*.awk
+working_script_samples/*.sh
 *.ipynb
 .ipynb_checkpoints
 logs
