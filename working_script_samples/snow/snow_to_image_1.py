@@ -81,7 +81,7 @@ def create_color_map(boundaries, colors_list, bottom_value, top_value, show_prev
     if show_preview:
         # 시각화 예시
         # 임의의 데이터 생성
-        data = np.random.uniform(0, 1, size=(10, 10))
+        data = np.random.uniform(4, 6, size=(10, 10))
 
         # Matplotlib를 사용하여 plot
         fig, ax = plt.subplots(figsize=(8, 10))
@@ -91,6 +91,8 @@ def create_color_map(boundaries, colors_list, bottom_value, top_value, show_prev
         ax.set_title("Custom Colormap from User-provided Images")
 
         plt.show()
+
+    return cmap, norm
 
 # --- 1. 데이터 로드 및 좌표 변환 함수 ---
 def load_and_transform_data(json_path: str, transformer: Transformer):
@@ -211,9 +213,11 @@ def create_masked_image(ZI_WM, XI_WM, YI_WM, snow_depths, station_xs_wm, station
     # ax.set_aspect('equal')
 
     # 'cool' 컬러맵 사용
-    cmap = create_color_map(boundaries, colors_list, bottom_value, top_value, False)
+    cmap, norm = create_color_map(boundaries, colors_list, bottom_value, top_value, False)
     # contour = ax.contourf(XI_WM, YI_WM, Z_masked, levels=20, cmap='twilight', extend='neither', alpha=1)
-    contour = ax.contourf(XI_WM, YI_WM, Z_masked, levels=20, cmap=cmap, extend='neither', alpha=1)
+    # contour = ax.contourf(XI_WM, YI_WM, Z_masked, levels=20, cmap=cmap, norm=norm, extend='True', alpha=1)
+    contour = ax.contourf(XI_WM, YI_WM, Z_masked, levels=50, cmap=cmap, norm=norm, extend='neither', alpha=1)
+    # contour = ax.contourf(XI_WM, YI_WM, Z_masked, levels=50, cmap=cmap, extend='neither', alpha=1)
 
     ax.set_axis_off()
     plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
