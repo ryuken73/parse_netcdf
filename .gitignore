@@ -19,3 +19,4 @@ working_script_samples/*.bin_1
 .ipynb_checkpoints
 logs
 assets
+*.png
