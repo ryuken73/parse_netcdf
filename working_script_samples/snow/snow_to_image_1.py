@@ -7,6 +7,7 @@ import json
 from pyproj import CRS, Transformer
 import geopandas
 import pandas as pd
+import matplotlib.colors as mcolors
 from shapely.geometry import Point
 
 min_lon, max_lon = 124.4, 131.6
@@ -16,6 +17,80 @@ def is_in_boundary(station_data):
   lon = float(station_data['lon'])
   lat = float(station_data['lat'])
   return min_lon <= lon <= max_lon and min_lat <= lat <= max_lat
+
+# 1. 이미지에서 추출한 경계값 리스트
+# 0.1 미만과 100 초과를 처리하기 위해 실제 컬러바에 표시된 숫자들을 경계값으로 사용
+boundaries = [
+    0.1, 0.2, 0.4, 0.6, 0.8, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0,
+    10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 25.0, 30.0, 35.0, 40.0, 50.0, 60.0,
+    70.0, 80.0, 90.0, 100.0
+]
+# 2. 이미지에서 추출한 색상 리스트 (RGB Hex 코드로 정의)
+# ListedColormap은 N개의 경계값에 N-1개의 색상을 매핑하므로,
+# under와 over 색상을 제외한 30개의 색상을 추출했습니다.
+colors_list = [
+    '#ffea6e', # 0.1 - 0.2
+    '#ffdc1f', # 0.2 - 0.4
+    '#f9cd00', # 0.4 - 0.6
+    '#e0b900', # 0.6 - 0.8
+    '#ccaa00', # 0.8 - 1.0
+    '#69fc69', # 1.0 - 1.5
+    '#1ef31e', # 1.5 - 2.0
+    '#00d500', # 2.0 - 3.0
+    '#00a400', # 3.0 - 4.0
+    '#008000', # 4.0 - 5.0
+    '#87d9ff', # 5.0 - 6.0
+    '#3ec1ff', # 6.0 - 7.0
+    '#07abff', # 7.0 - 8.0
+    '#008dde', # 8.0 - 9.0
+    '#0077b3', # 9.0 - 10.0
+    '#b3b4de', # 10.0 - 12.0
+    '#8081c7', # 12.0 - 14.0
+    '#4c4eb1', # 14.0 - 16.0
+    '#1f219d', # 16.0 - 18.0
+    '#000390', # 18.0 - 20.0
+    '#da87ff', # 20.0 - 25.0
+    '#c23eff', # 25.0 - 30.0
+    '#ad07ff', # 30.0 - 35.0
+    '#9200e4', # 35.0 - 40.0
+    '#7f00bf', # 40.0 - 50.0
+    '#fa8585', # 50.0 - 60.0
+    '#f63e3e', # 60.0 - 70.0
+    '#ee0b0b', # 70.0 - 80.0
+    '#d50000', # 80.0 - 90.0
+    '#bf0000', # 90.0 - 100.0
+]
+
+bottom_value = '#eeeeee'
+top_value = '#333333'
+
+def create_color_map(boundaries, colors_list, bottom_value, top_value, show_preview=True):
+    # Matplotlib ListedColormap을 사용하여 커스텀 컬러맵 생성
+    # N = len(boundaries)이므로, boundaries의 개수와 colors_list의 개수를 맞춰야 함.
+    cmap = mcolors.ListedColormap(colors_list)
+
+    # 경계값에 따라 Colormap을 정규화하는 BoundaryNorm 생성
+    # norm = mcolors.BoundaryNorm(boundaries, cmap.N, clip=True)
+    norm = mcolors.BoundaryNorm(boundaries, cmap.N, extend=True)
+
+    # 0.1보다 작은 값과 100보다 큰 값에 대한 색상 설정
+    # 이미지에서 0.1 미만은 F0F0F0, 100 초과는 242424로 보임
+    cmap.set_under(bottom_value) # 0.1 미만 값
+    cmap.set_over(top_value) # 100 초과 값
+
+    if show_preview:
+        # 시각화 예시
+        # 임의의 데이터 생성
+        data = np.random.uniform(0, 1, size=(10, 10))
+
+        # Matplotlib를 사용하여 plot
+        fig, ax = plt.subplots(figsize=(8, 10))
+        im = ax.imshow(data, cmap=cmap, norm=norm)
+        fig.colorbar(im, ax=ax, boundaries=boundaries, extend='both',
+                    ticks=boundaries, spacing='proportional')
+        ax.set_title("Custom Colormap from User-provided Images")
+
+        plt.show()
 
 # --- 1. 데이터 로드 및 좌표 변환 함수 ---
 def load_and_transform_data(json_path: str, transformer: Transformer):
@@ -136,7 +211,9 @@ def create_masked_image(ZI_WM, XI_WM, YI_WM, snow_depths, station_xs_wm, station
     # ax.set_aspect('equal')
 
     # 'cool' 컬러맵 사용
-    contour = ax.contourf(XI_WM, YI_WM, Z_masked, levels=20, cmap='twilight', extend='neither', alpha=1)
+    cmap = create_color_map(boundaries, colors_list, bottom_value, top_value, False)
+    # contour = ax.contourf(XI_WM, YI_WM, Z_masked, levels=20, cmap='twilight', extend='neither', alpha=1)
+    contour = ax.contourf(XI_WM, YI_WM, Z_masked, levels=20, cmap=cmap, extend='neither', alpha=1)
 
     ax.set_axis_off()
     plt.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
@@ -147,7 +224,7 @@ def create_masked_image(ZI_WM, XI_WM, YI_WM, snow_depths, station_xs_wm, station
             ax.text(station_xs_wm[i], station_ys_wm[i], f'{snow_depths[i]:.1f}',
                     ha='center', va='center', color='red', fontsize=12)
 
-    fig.savefig('snow_depth_mercator.png', bbox_inches='tight', pad_inches=0, transparent=True, facecolor='none')
+    fig.savefig('snow_depth_mercator_custom_cmap.png', bbox_inches='tight', pad_inches=0, transparent=True, facecolor='none')
     plt.close(fig)
     print("Image 'snow_depth_mercator.png' generated.")
 
