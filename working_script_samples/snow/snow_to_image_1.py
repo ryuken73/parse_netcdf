@@ -228,7 +228,7 @@ def create_masked_image(ZI_WM, XI_WM, YI_WM, snow_depths, station_xs_wm, station
             ax.text(station_xs_wm[i], station_ys_wm[i], f'{snow_depths[i]:.1f}',
                     ha='center', va='center', color='red', fontsize=12)
 
-    fig.savefig('snow_depth_mercator_custom_cmap.png', bbox_inches='tight', pad_inches=0, transparent=True, facecolor='none')
+    fig.savefig('snow_depth_mercator_custom_cmap_with_zero.png', bbox_inches='tight', pad_inches=0, transparent=True, facecolor='none')
     plt.close(fig)
     print("Image 'snow_depth_mercator.png' generated.")
 
@@ -284,8 +284,8 @@ def create_masked_image(ZI_WM, XI_WM, YI_WM, snow_depths, station_xs_wm, station
 
 if __name__ == '__main__':
     # 설정 변수
-    JSON_FILE_PATH = 'SNOW_24H_202507051300_ALL.json'
-    # JSON_FILE_PATH = 'SNOW_24H_202507051300.json'
+    # JSON_FILE_PATH = 'SNOW_24H_202507051300_ALL.json'
+    JSON_FILE_PATH = 'SNOW_24H_202507051300.json'
     GEOJSON_FILE_PATH = 'skorea-provinces-2018-geo.json'
 
     # bbox of image 
