@@ -1,4 +1,4 @@
-Colors = {
+colors_raw = {
     "RN_15M": {
         # 1. 이미지에서 추출한 경계값 리스트
         "boundaries": [
@@ -46,3 +46,14 @@ Colors = {
         "top_value": "#333333"
     }
 }
+
+class CustomDict(dict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __getitem__(self, key):
+        if key == 'RN_60M':
+            return super().__getitem__("RN_15M")
+        return super().__getitem__(key)
+
+Colors = CustomDict(colors_raw)

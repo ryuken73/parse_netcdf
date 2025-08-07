@@ -21,10 +21,6 @@ IMAGE_WIDTH_PIXELS = 200
 IMAGE_HEIGHT_PIXELS = 200
 EPSILON = 0.1
 
-VALUE_TO_MULTIPLY = {
-  "RN_15M": 0.1
-}
-
 def create_color_map(boundaries, colors_list, bottom_value, top_value, show_preview=True):
   # Matplotlib ListedColormap을 사용하여 커스텀 컬러맵 생성
   # N = len(boundaries)이므로, boundaries의 개수와 colors_list의 개수를 맞춰야 함.
@@ -75,21 +71,19 @@ def is_valid_stn_data(stn_data):
     # 값이 'test'로 시작하면 False, 아니면 True 반환
     return not stn_name.startswith('test')
 
-def filter_json(json_data, pick_column, invalid_value):
+def filter_json(json_data, pick_column, invalid_value, value_to_multiply):
   try :
     filter_only_valid = [
       stn_data for stn_data 
       in json_data 
       if (is_valid_stn_data(stn_data)) and (stn_data[pick_column] != invalid_value)
     ]
-    if VALUE_TO_MULTIPLY.get(pick_column) is None:
-      print(f"Error: No multiplication value found for '{pick_column}'")
     filter_only_column = [
       {
         "stn_name": stn_data["STN_NAME"],
         "lat": stn_data["LAT"],
         "lon": stn_data["LON"],
-        pick_column: stn_data[pick_column] * VALUE_TO_MULTIPLY[pick_column]
+        pick_column: stn_data[pick_column] * value_to_multiply 
       } for stn_data in filter_only_valid
     ]
     return filter_only_column
@@ -146,7 +140,7 @@ def perform_interpolation(station_xs_wm, station_ys_wm, snow_depths,
 def create_kor_boundary_mask(mask, korea_geojson_path: str, XI_WM, YI_WM, lat_cutoff):
     try:
         korea_boundary = geopandas.read_file(korea_geojson_path)
-        print('Korea boundary GeoJSON loaded successfully.')
+        print('korea boundary GeoJSON loaded successfully.')
 
         korea_boundary_wm = korea_boundary.to_crs(epsg=3857)
 
