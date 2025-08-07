@@ -87,6 +87,22 @@ module.exports = {
       },
     },
     {
+      name: "kma_fetch_aws",
+      script: "/home/sbs/node_project/weather_server/kma_fetch/run_watcher_prod_AWS.sh",
+      interpreter: "bash",
+      exec_mode: "fork",
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      log_date_format: "YYYY-MM-DD HH:mm Z",
+      error_file: "./logs/kma-fetch-aws-error.log",
+      out_file: "./logs/kma-fetch-aws-out.log",
+      time: true,
+      env: {
+        NODE_ENV: "production",
+      },
+    },
+    {
       name: "weather_api",
       script: "/home/sbs/node_project/weather_server/server.js",
       exec_mode: "fork",
