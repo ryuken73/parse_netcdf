@@ -198,7 +198,7 @@ def apply_mask(XI_WM, YI_WM, ZI_WM, korea_geojson_path):
     return Z_masked
   
 def save_contour_image(XI_WM, YI_WM, Z_masked, cmap, norm, station_xs_wm, 
-                       station_ys_wm, aws_values, lons, out_image_name):
+                       station_ys_wm, aws_values, lons, out_image_name, print_values_min):
   fig = plt.figure(figsize=(25, 24), dpi=100)
   size = fig.get_size_inches() * fig.dpi
   print('Figure size:', size)
@@ -211,7 +211,7 @@ def save_contour_image(XI_WM, YI_WM, Z_masked, cmap, norm, station_xs_wm,
   plt.margins(0,0)
 
   for i in range(len(lons)):
-    if aws_values[i] > 0.0:
+    if aws_values[i] > print_values_min:
       ax.text(station_xs_wm[i], station_ys_wm[i], f'{aws_values[i]:.1f}',
         ha='center', va='center', color='red', fontsize=12)
 

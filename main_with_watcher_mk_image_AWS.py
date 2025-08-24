@@ -17,8 +17,8 @@ MIN_LAT, MAX_LAT = 33, 38.6
 ## 보간 정밀도에 영향을 줌 (widthXheight으로 보간 포인트 생성)
 ## 값이 클수록 촘촘히 데이터를 보간해서 contour라인이 부드러워지지만 생성시간이 많이 걸림
 ## 생성된 이미지를 보고 튜닝하면 될 듯(기본 200X200)
-IMAGE_WIDTH_PIXELS = 200 
-IMAGE_HEIGHT_PIXELS = 200
+IMAGE_WIDTH_PIXELS = 400 
+IMAGE_HEIGHT_PIXELS = 400
 EPSILON = 0.1
 
 korea_boundary_geojson = 'skorea-provinces-2018-geo.json'
@@ -30,6 +30,10 @@ COMUMNS_TO_PICK = [
 VALUES_TO_MULTIPLY = {
   "RN_15M": 0.1,
   "RN_60M": 0.1
+}
+PRINT_VALUES_MIN = {
+  "RN_15M": 60,
+  "RN_60M": 100 
 }
 
 SAVE_IMAGE_STEPS =  [1, 5, 10]
@@ -98,7 +102,8 @@ def callback(aws_file):
 
       # 8. contour이미지를 만들고 저장한다.
       print(f'7. make contour image and save file') 
-      save_contour_image(XI_WM, YI_WM, z_masked, cmap, norm, station_xs_wm, station_ys_wm, aws_values, lons, aws_image_name)
+      print_values_min = PRINT_VALUES_MIN[column_to_pick]
+      save_contour_image(XI_WM, YI_WM, z_masked, cmap, norm, station_xs_wm, station_ys_wm, aws_values, lons, aws_image_name, print_values_min)
       print(f'done save image {aws_image_name}')
     except Exception as e:
       print('error', e)
