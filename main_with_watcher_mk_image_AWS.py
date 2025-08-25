@@ -17,8 +17,8 @@ MIN_LAT, MAX_LAT = 33, 38.6
 ## 보간 정밀도에 영향을 줌 (widthXheight으로 보간 포인트 생성)
 ## 값이 클수록 촘촘히 데이터를 보간해서 contour라인이 부드러워지지만 생성시간이 많이 걸림
 ## 생성된 이미지를 보고 튜닝하면 될 듯(기본 200X200)
-IMAGE_WIDTH_PIXELS = 400 
-IMAGE_HEIGHT_PIXELS = 400
+IMAGE_WIDTH_PIXELS = 300 
+IMAGE_HEIGHT_PIXELS = 300
 EPSILON = 0.1
 
 korea_boundary_geojson = 'skorea-provinces-2018-geo.json'
