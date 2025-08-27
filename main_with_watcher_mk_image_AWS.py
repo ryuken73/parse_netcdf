@@ -25,15 +25,18 @@ korea_boundary_geojson = 'skorea-provinces-2018-geo.json'
 
 COMUMNS_TO_PICK = [
   "RN_15M", 
-  "RN_60M"
+  "RN_60M",
+  "RN_24HR",
 ]
 VALUES_TO_MULTIPLY = {
   "RN_15M": 0.1,
-  "RN_60M": 0.1
+  "RN_60M": 0.1,
+  "RN_24HR": 0.1
 }
 PRINT_VALUES_MIN = {
   "RN_15M": 60,
-  "RN_60M": 100 
+  "RN_60M": 100,
+  "RN_24HR": 1,
 }
 
 SAVE_IMAGE_STEPS =  [1, 5, 10]
@@ -60,9 +63,9 @@ def callback(aws_file):
       json_data = load_json(aws_file)
 
       # column_to_pick = 'RN_15M'
-      invalid_value = -999
+      invalid_values = [-999, -992, -997]
       value_to_multiply = VALUES_TO_MULTIPLY[column_to_pick]
-      picked_data = filter_json(json_data, column_to_pick, invalid_value, value_to_multiply)
+      picked_data = filter_json(json_data, column_to_pick, invalid_values, value_to_multiply)
       print(picked_data[:5])
 
       print(f'2. transfrom EPSG:4326 to EPSG:3857')
