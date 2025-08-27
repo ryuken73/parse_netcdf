@@ -71,12 +71,12 @@ def is_valid_stn_data(stn_data):
     # 값이 'test'로 시작하면 False, 아니면 True 반환
     return not stn_name.startswith('test')
 
-def filter_json(json_data, pick_column, invalid_value, value_to_multiply):
+def filter_json(json_data, pick_column, invalid_values, value_to_multiply):
   try :
     filter_only_valid = [
       stn_data for stn_data 
       in json_data 
-      if (is_valid_stn_data(stn_data)) and (stn_data[pick_column] != invalid_value)
+      if (is_valid_stn_data(stn_data)) and (stn_data[pick_column] not in invalid_values)
     ]
     filter_only_column = [
       {
