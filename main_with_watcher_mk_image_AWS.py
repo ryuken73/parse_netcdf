@@ -94,10 +94,10 @@ def callback(aws_file):
       # 6. 대한민국 경계로 masking하고 값이 너무 작은 경우도 투명처리한다.
       print(f'5. apply masking(korea boundary and too low value masking)')
       z_masked = apply_mask(XI_WM, YI_WM, ZI_WM, korea_boundary_geojson)
-      is_all_masked = np.all(z_masked.mask)
-      if is_all_masked : 
-        print(f'-- all data masked(no data to make image) for {column_to_pick}. skip to make image.')
-        continue
+      # is_all_masked = np.all(z_masked.mask)
+      # if is_all_masked : 
+        # print(f'-- all data masked(no data to make image) for {column_to_pick}. skip to make image.')
+        # continue
 
       # 7. color map을 만든다.
       print(f'6. make color map') 
