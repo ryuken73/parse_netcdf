@@ -11,9 +11,11 @@ class Config:
   OUT_PATH = os.getenv("OUT_PATH")
   OUT_PATH_RDR = os.getenv("OUT_PATH_RDR")
   OUT_PATH_AWS = os.getenv("OUT_PATH_AWS")
+  OUT_PATH_WIND = os.getenv("OUT_PATH_WIND")
   WATCH_PATH = os.getenv("WATCH_PATH")
   WATCH_PATH_RDR = os.getenv("WATCH_PATH_RDR")
   WATCH_PATH_AWS = os.getenv("WATCH_PATH_AWS")
+  WATCH_PATH_WIND = os.getenv("WATCH_PATH_WIND")
   OS_SEP = os.getenv("OS_SEP")
 
 # 환경에 따른 설정 가져오기

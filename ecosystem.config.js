@@ -138,5 +138,23 @@ module.exports = {
 
       },
     },
+    {
+      name: "gfs_wind",
+      script: "./get_wind.py",
+      interpreter: "python3",
+      exec_mode: "fork",
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      env_file: ".env.prod",
+      log_date_format: "YYYY-MM-DD HH:mm Z",
+      error_file: "./logs/gfs_wind-error.log",
+      out_file: "./logs/gfs_wind-out.log",
+      time: true,
+      env: {
+        ENV: "prod",
+        NODE_ENV: "production",
+      },
+    },
   ],
 };
