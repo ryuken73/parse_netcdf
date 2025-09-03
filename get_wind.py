@@ -135,11 +135,11 @@ def get_wind_data(grbs):
 
 def add_hours(dt_str, hours):
   # 문자열을 datetime 객체로 변환
-  dt = datetime.strptime(dt_str, '%Y%m%d%H%M%S')
+  dt = datetime.strptime(dt_str, '%Y%m%d%H%M')
   # 9시간 추가
   dt = dt + timedelta(hours=hours)
   # 다시 문자열 형식으로 변환
-  return dt.strftime('%Y%m%d%H%M%S')
+  return dt.strftime('%Y%m%d%H%M')
 
 # open GRIB2
 # grbs_file = "gfs.t00z.pgrb2.0p25.f000"
@@ -151,6 +151,9 @@ date_time_queue = [
   ["20250902", "18"],
   ["20250903", "00"],
   ["20250903", "06"],
+  ["20250903", "12"],
+  ["20250903", "18"],
+  ["20250904", "00"],
 ]
 
 while True:
@@ -162,7 +165,7 @@ while True:
   date_time_done = []
   for dt in date_time_queue:
     print(f"### Start Processing {dt[0]} {dt[1]} {datetime.now()}")
-    utc_string = f"{dt[0]}{dt[1]}0000"
+    utc_string = f"{dt[0]}{dt[1]}00"
     kor_string = add_hours(utc_string, 9)
     sub_dir = f"{kor_string[:4]}-{kor_string[4:6]}-{kor_string[6:8]}"
     os.makedirs(f"{in_dir}/{sub_dir}", exist_ok=True)
