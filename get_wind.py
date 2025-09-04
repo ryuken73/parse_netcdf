@@ -170,7 +170,7 @@ while True:
     sub_dir = f"{kor_string[:4]}-{kor_string[4:6]}-{kor_string[6:8]}"
     os.makedirs(f"{in_dir}/{sub_dir}", exist_ok=True)
     os.makedirs(f"{out_dir}/{sub_dir}", exist_ok=True)
-    target_file = f"{out_dir}/{sub_dir}/gfs_wind-10m_{utc_string}_{kor_string}.json"
+    target_file = f"{out_dir}/{sub_dir}/gfs_wind_10m_{utc_string}_{kor_string}.json"
 
     # if target_file already exists, continue
     if os.path.exists(target_file):
