@@ -317,7 +317,8 @@ while True:
     grbs = show_grib_file(grbs_file)
     for LEVEL in LEVELS:
       results = get_wind_data(grbs, LEVEL)
-      target_file_level = f"{out_dir}/{sub_dir}/gfs_wind_{PARAMS_FOR_LEVELS[LEVEL]["fname_level"]}_{utc_string}_{kor_string}.json"
+      fname_level = PARAMS_FOR_LEVELS[LEVEL]["fname_level"]
+      target_file_level = f"{out_dir}/{sub_dir}/gfs_wind_{fname_level}_{utc_string}_{kor_string}.json"
       with open(target_file_level, 'w') as f:
         json.dump(results, f)
       print(f"%%% Data saved to {target_file_level}")
