@@ -14,7 +14,31 @@ print(f'Running in {config.ENV} mode')
 print(f'OUT_PATH_WIND = {config.OUT_PATH_WIND}')
 print(f'WATCH_PATH_WIND = {config.WATCH_PATH_WIND}')
 
-LEVELS = ["lev_10_m_above_ground"]
+LEVELS = ["lev_10_m_above_ground","lev_850_mb", "lev_500_mb"]
+PARAMS_FOR_LEVELS = {
+  "lev_10_m_above_ground": {
+    "U_name": "10 metre U wind component",
+    "V_name": "10 metre V wind component",
+    "typeOfLevel": "heightAboveGround",
+    "level": 10,
+    "fname_level": '10m'
+  },
+  "lev_500_mb": {
+    "U_name": "U component of wind",
+    "V_name": "V component of wind",
+    "typeOfLevel": "isobaricInhPa",
+    "level": 500,
+    "fname_level": '500mb'
+  },
+  "lev_850_mb": {
+    "U_name": "U component of wind",
+    "V_name": "V component of wind",
+    "typeOfLevel": "isobaricInhPa",
+    "level": 850,
+    "fname_level": '850mb'
+  },
+}
+
 VALUES = ["on"] * len(LEVELS)
 
 in_dir = config.WATCH_PATH_WIND
@@ -115,17 +139,27 @@ def flatten_data(grd_data):
   """Flatten 2D grid data to 1D list in transposed order for JSON compatibility."""
   return grd_data.T.flatten().tolist()
 
-def get_wind_data(grbs):
+def get_wind_data(grbs, LEVEL):
+  # locate first position of gribs
+  grbs.seek(0)
   # ugrd와 vgrd (10m wind) 추출
+  print(f"get_wind_data for {LEVEL}")
   ugrd_data = None;
   vgrd_data = None;
   lats, lons = None, None;
+  u_name = PARAMS_FOR_LEVELS[LEVEL]["U_name"]
+  v_name = PARAMS_FOR_LEVELS[LEVEL]["V_name"]
+  typeOfLevel = PARAMS_FOR_LEVELS[LEVEL]["typeOfLevel"]
+  level = PARAMS_FOR_LEVELS[LEVEL]["level"]
 
   for grb in grbs:
-    if grb.name == "10 metre U wind component" and grb.typeOfLevel == "heightAboveGround" and grb.level == 10 :
+    print(grb.name, grb.typeOfLevel, grb.level)
+    # if grb.name == "10 metre U wind component" and grb.typeOfLevel == "heightAboveGround" and grb.level == 10 :
+    if grb.name == u_name and grb.typeOfLevel == typeOfLevel and grb.level == level :
       ugrd_data = np.round(grb.values, 2)
       lats, lons = grb.latlons()
-    if grb.name == "10 metre V wind component" and grb.typeOfLevel == "heightAboveGround" and grb.level == 10 :
+    # if grb.name == "10 metre V wind component" and grb.typeOfLevel == "heightAboveGround" and grb.level == 10 :
+    if grb.name == v_name and grb.typeOfLevel == typeOfLevel and grb.level == level :
       vgrd_data = np.round(grb.values, 2)
 
   def flatten_data(grd_data):
@@ -156,10 +190,10 @@ def get_wind_data(grbs):
       {
         "header": {
           "refTime": "2025-08-30 00:00:00",
-          "parameterName": 'U wind component',
+          "parameterName": u_name,
           "numberPoints": 65160,
           "surface1TypeName": "Specified height level above ground",
-          "surface1Value": 10.0,
+          "surface1Value": level,
           "nx": 360,
           "ny": 181,
           "lo1": 0.0,
@@ -174,10 +208,10 @@ def get_wind_data(grbs):
       {
         "header": {
           "refTime": "2025-08-30 00:00:00",
-          "parameterName": 'V wind component',
+          "parameterName": v_name,
           "numberPoints": 65160,
           "surface1TypeName": "Specified height level above ground",
-          "surface1Value": 10.0,
+          "surface1Value": level,
           "nx": 360,
           "ny": 181,
           "lo1": 0.0,
@@ -268,6 +302,7 @@ while True:
     sub_dir = f"{kor_string[:4]}-{kor_string[4:6]}-{kor_string[6:8]}"
     os.makedirs(f"{in_dir}/{sub_dir}", exist_ok=True)
     os.makedirs(f"{out_dir}/{sub_dir}", exist_ok=True)
+    # if 10m json exists, should not start download grib file
     target_file = f"{out_dir}/{sub_dir}/gfs_wind_10m_{utc_string}_{kor_string}.json"
     print(f"### Start Processing {target_file} level {level} {datetime.now()}")
 
@@ -280,10 +315,12 @@ while True:
       print(f"%%% Will retry downloading later for {date} {hour} {level} {time_offset}")
       continue
     grbs = show_grib_file(grbs_file)
-    results = get_wind_data(grbs)
-    with open(target_file, 'w') as f:
-      json.dump(results, f)
-    print(f"%%% Data saved to {target_file}")
+    for LEVEL in LEVELS:
+      results = get_wind_data(grbs, LEVEL)
+      target_file_level = f"{out_dir}/{sub_dir}/gfs_wind_{PARAMS_FOR_LEVELS[LEVEL]["fname_level"]}_{utc_string}_{kor_string}.json"
+      with open(target_file_level, 'w') as f:
+        json.dump(results, f)
+      print(f"%%% Data saved to {target_file_level}")
 
   print("Sleeping for 10 minutes...")
   time.sleep(600)
