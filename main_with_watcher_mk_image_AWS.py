@@ -34,9 +34,9 @@ VALUES_TO_MULTIPLY = {
   "RN_24HR": 0.1
 }
 PRINT_VALUES_MIN = {
-  "RN_15M": 60,
-  "RN_60M": 100,
-  "RN_24HR": 300,
+  "RN_15M": 20,
+  "RN_60M": 50,
+  "RN_24HR": 180,
 }
 
 SAVE_IMAGE_STEPS =  [1, 5, 10]
