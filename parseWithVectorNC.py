@@ -271,7 +271,7 @@ def read_ir105_fd_fast_with_vector (file_path, step, attr_to_get, conversion_fil
 def read_ir105_ea_fast_with_vector(file_path, step, attr_to_get, conversion_file):
   # 파일 열기
   print('execute nc.Dataset')
-  ds = nc.Dataset(file_path, 'r')
+  ds = nc.Dataset(file_path, format='NETCDF4')
 
   # 이미지 픽셀 값과 차원 가져오기
   image_pixel_values = ds.variables[attr_to_get][:]

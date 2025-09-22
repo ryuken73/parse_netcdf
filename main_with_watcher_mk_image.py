@@ -6,6 +6,7 @@ from config import get_config
 import sys
 import multiprocessing
 
+os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
 config = get_config()
 print(f'Running in {config.ENV} mode')
 print(f'OUT_PATH = {config.OUT_PATH}')
