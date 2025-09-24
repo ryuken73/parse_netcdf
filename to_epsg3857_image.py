@@ -65,8 +65,8 @@ def covert_to_equi_rectangle(coverage, in_file, out_file):
       print(f"use tempfile {temp_file.name}")
       run_gdal_translate(in_file, temp_file.name, ulx, uly, lrx, lry)
       run_gdalwarp(temp_file.name, out_file)
-    print(f"conver done in: {in_file}")
-    print(f"conver done to: {out_file}")
+    print(f"convert done - in: {in_file}")
+    print(f"convert done - to: {out_file}")
   except:
     print(f"error to convert file")
   #in_file = '/data/node_project/weather_data/out_data/gk2a/2025-09-23/gk2a_ami_le1b_ir105_ea020lc_202509231330_202509232230_step1_color.png'
