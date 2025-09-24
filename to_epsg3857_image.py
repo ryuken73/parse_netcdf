@@ -55,7 +55,7 @@ def run_gdalwarp(in_file, out_file):
 
 
 def covert_to_equi_rectangle(coverage, in_file, out_file):
-  lat_U, lng_U, lat_L, lng_L = get_wgs84_boundary_coords('ea');
+  lat_U, lng_U, lat_L, lng_L = get_wgs84_boundary_coords(coverage);
   ulx,uly = get_xy_from_latlng(lat_U, lng_U)
   lrx,lry = get_xy_from_latlng(lat_L, lng_L)
   print(f"위경도 ({lat_U}, {lng_U})")
