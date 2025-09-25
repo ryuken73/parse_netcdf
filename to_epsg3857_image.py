@@ -10,8 +10,8 @@ import tempfile
 # 참고: 최신 pyproj 버전 (v2 이상)에서는 `init` 대신 `proj` 인자를 사용하며, `Proj` 객체 생성 시좌표계 코드를 직접 지정합니다.
 wgs84_values = {
   "fd":{
-    "UL": (30, 80),
-    "LR": (220, -80),
+    "UL": (220, 80),
+    "LR": (30, -80),
   },
   "ea":{
     "UL": (76.8111834, 61.9310477),
@@ -48,8 +48,8 @@ def run_gdal_translate(in_file, out_file, ulx, uly, lrx, lry):
   out = subprocess.run(cmd , shell=True, capture_output=True, text=True, check=True)
   print(out.stdout)
 
-def run_gdalwarp(in_file, out_file):
-  cmd = f"gdalwarp -t_srs EPSG:4326 -te -180 -90 180 90 -ts 7200 3600 -dstalpha {in_file} {out_file}"
+def run_gdalwarp(in_file, out_file, xmin=-180, xmax=180):
+  cmd = f"gdalwarp -t_srs EPSG:4326 -te {xmin} -90 {xmax} 90 -ts 7200 3600 -dstalpha {in_file} {out_file}"
   out = subprocess.run(cmd , shell=True, capture_output=True, text=True, check=True)
   print(out.stdout)
 
@@ -58,13 +58,16 @@ def covert_to_equi_rectangle(coverage, in_file, out_file):
   lat_U, lng_U, lat_L, lng_L = get_wgs84_boundary_coords(coverage);
   ulx,uly = get_xy_from_latlng(lat_U, lng_U)
   lrx,lry = get_xy_from_latlng(lat_L, lng_L)
-  print(f"위경도 ({lat_U}, {lng_U})")
-  print(f"EPSG:3857 좌표: ({ulx}, {uly})")
+  print(f"위경도 ({lat_U}, {lng_U}, {lat_L}, {lng_L}) ")
+  print(f"EPSG:3857 좌표: ({ulx}, {uly}, {lrx}, {lry})")
   try:
     with tempfile.NamedTemporaryFile() as temp_file:
       print(f"use tempfile {temp_file.name}")
       run_gdal_translate(in_file, temp_file.name, ulx, uly, lrx, lry)
-      run_gdalwarp(temp_file.name, out_file)
+      if coverage == 'fd':
+        run_gdalwarp(temp_file.name, out_file, 0, 360)
+      else:
+        run_gdalwarp(temp_file.name, out_file)
     print(f"convert done - in: {in_file}")
     print(f"convert done - to: {out_file}")
   except:
