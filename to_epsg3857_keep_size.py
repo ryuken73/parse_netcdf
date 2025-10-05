@@ -30,10 +30,14 @@ wgs84_values = {
   "rdr":{
     "UL": (118.8394260710767, 43.572496647155695),
     "LR": (133.5627133041138, 30.102047565010807),
+    "width": 2554,
+    "height": 2934,
   },
   "aws":{
     "UL": (124.4, 38.6),
     "LR": (131.6, 33.0),
+    "width": 2500,
+    "height": 2400,
   },
 }
 
@@ -94,21 +98,20 @@ def covert_to_equi_rectangle(coverage, in_file, out_file):
         print("in fd, lat over 180 make minus lrx and eventually converted image is invalid. use plus value for lrx")
         lrx = 21150703.250721980
       run_gdal_translate(in_file, temp_file.name, ulx, uly, lrx, lry)
-      if coverage == 'fd':
-        #run_gdalwarp(temp_file.name, out_file, 0, 360)
-        run_gdalwarp_keep_size(temp_file.name, out_file, options)
-      elif coverage == 'rdr':
-        run_gdalwarp(temp_file.name, out_file, -180, 180, 10240, 5120)
-      else:
-        run_gdalwarp_keep_size(temp_file.name, out_file, options)
+      run_gdalwarp_keep_size(temp_file.name, out_file, options)
     print(f"convert done - in: {in_file}")
     print(f"convert done - to: {out_file}")
   except Exception as e:
     print(e)
     print(f"error to convert file")
 
-in_file = '/data/node_project/weather_data/out_data/gk2a/2025-09-23/gk2a_ami_le1b_ir105_fd020ge_202509231450_202509232350_step1_color.png'
+#in_file = '/data/node_project/weather_data/out_data/gk2a/2025-09-23/gk2a_ami_le1b_ir105_fd020ge_202509231450_202509232350_step1_color.png'
 #in_file = '/data/node_project/weather_data/out_data/gk2a/2025-09-23/gk2a_ami_le1b_ir105_ko020lc_202509231458_202509232358_step1_color.png'
-out_file = 'gk2a_ami_le1b_ir105_fd020ge_202509231450_202509232350_step1_color_keep_size_equi.png'
+#in_file = '/data/node_project/weather_data/out_data/aws/2025-09-13/AWS_MIN_202509132330_RN_24HR_step1.png'
+#in_file = '/data/node_project/weather_data/out_data/rdr/2025-09-26/RDR_CMP_HSP_PUB_202509260845_step1.png'
+#out_file = 'gk2a_ami_le1b_ir105_fd020ge_202509231450_202509232350_step1_color_keep_size_equi.png'
 #out_file = 'gk2a_ami_le1b_ir105_ko020lc_202509231458_202509232358_step1_color_euqi_keep_size.png'
-covert_to_equi_rectangle('fd', in_file, out_file)
+#out_file = 'AWS_MIN_202509132330_RN_24HR_step1_keep_size_equi.png'
+#out_file = 'RDR_CMP_HSP_PUB_202509260845_step1_keep_size.png'
+
+#covert_to_equi_rectangle('rdr', in_file, out_file)
