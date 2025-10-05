@@ -10,16 +10,22 @@ import tempfile
 # 참고: 최신 pyproj 버전 (v2 이상)에서는 `init` 대신 `proj` 인자를 사용하며, `Proj` 객체 생성 시좌표계 코드를 직접 지정합니다.
 wgs84_values = {
   "fd":{
-    "UL": (220, 80),
-    "LR": (30, -80),
+    "UL": (0, 80),
+    "LR": (190, -80),
+    "width": 3192,
+    "height": 3192,
   },
   "ea":{
     "UL": (76.8111834, 61.9310477),
     "LR": (175.112668, 11.3541175),
+    "width": 1500,
+    "height": 1300,
   },
   "ko":{
     "UL": (113.99641, 45.729865),
     "LR": (138.003582, 29.312252),
+    "width": 800,
+    "height": 800,
   },
   "rdr":{
     "UL": (118.8394260710767, 43.572496647155695),
@@ -53,29 +59,56 @@ def run_gdalwarp(in_file, out_file, xmin=-180, xmax=180, width=7200, height=3600
   out = subprocess.run(cmd , shell=True, capture_output=True, text=True, check=True)
   print(out.stdout)
 
+def run_gdalwarp_keep_size(in_file, out_file, options):
+  xmin = options["xmin"]
+  xmax = options["xmax"]
+  ymin = options["ymin"]
+  ymax = options["ymax"]
+  width = options["width"]
+  height = options["height"]
+  cmd = f"gdalwarp -t_srs EPSG:4326 -te {xmin} {ymin} {xmax} {ymax} -ts {width} {height} -dstalpha {in_file} {out_file}"
+  out = subprocess.run(cmd , shell=True, capture_output=True, text=True, check=True)
+  print(out.stdout)
+
 
 def covert_to_equi_rectangle(coverage, in_file, out_file):
   lat_U, lng_U, lat_L, lng_L = get_wgs84_boundary_coords(coverage);
   ulx,uly = get_xy_from_latlng(lat_U, lng_U)
   lrx,lry = get_xy_from_latlng(lat_L, lng_L)
+  width = wgs84_values[coverage]["width"]
+  height = wgs84_values[coverage]["height"]
   print(f"위경도 ({lat_U}, {lng_U}, {lat_L}, {lng_L}) ")
   print(f"EPSG:3857 좌표: ({ulx}, {uly}, {lrx}, {lry})")
+  options = {
+    "xmin": lat_U,
+    "xmax": lat_L,
+    "ymin": lng_L,
+    "ymax": lng_U,
+    "width": width,
+    "height": height
+  }
   try:
     with tempfile.NamedTemporaryFile() as temp_file:
       print(f"use tempfile {temp_file.name}")
+      if coverage == 'fd':
+        print("in fd, lat over 180 make minus lrx and eventually converted image is invalid. use plus value for lrx")
+        lrx = 21150703.250721980
       run_gdal_translate(in_file, temp_file.name, ulx, uly, lrx, lry)
       if coverage == 'fd':
-        run_gdalwarp(temp_file.name, out_file, 0, 360)
+        #run_gdalwarp(temp_file.name, out_file, 0, 360)
+        run_gdalwarp_keep_size(temp_file.name, out_file, options)
       elif coverage == 'rdr':
         run_gdalwarp(temp_file.name, out_file, -180, 180, 10240, 5120)
       else:
-        run_gdalwarp(temp_file.name, out_file)
+        run_gdalwarp_keep_size(temp_file.name, out_file, options)
     print(f"convert done - in: {in_file}")
     print(f"convert done - to: {out_file}")
-  except:
+  except Exception as e:
+    print(e)
     print(f"error to convert file")
-  #in_file = '/data/node_project/weather_data/out_data/gk2a/2025-09-23/gk2a_ami_le1b_ir105_ea020lc_202509231330_202509232230_step1_color.png'
-  #out_file = 'gk2a_ami_le1b_ir105_ea020lc_202509231330_202509232230_step1_color_temp.tif'
-  #out_final_file = 'gk2a_ami_le1b_ir105_ea020lc_202509231330_202509232230_step1_color_equi_rectangle_7200.png'
-  #run_gdal_translate(in_file, temp_file, ulx, uly, lrx, lry)
-  #run_gdalwarp(out_file, out_final_file)
+
+in_file = '/data/node_project/weather_data/out_data/gk2a/2025-09-23/gk2a_ami_le1b_ir105_fd020ge_202509231450_202509232350_step1_color.png'
+#in_file = '/data/node_project/weather_data/out_data/gk2a/2025-09-23/gk2a_ami_le1b_ir105_ko020lc_202509231458_202509232358_step1_color.png'
+out_file = 'gk2a_ami_le1b_ir105_fd020ge_202509231450_202509232350_step1_color_keep_size_equi.png'
+#out_file = 'gk2a_ami_le1b_ir105_ko020lc_202509231458_202509232358_step1_color_euqi_keep_size.png'
+covert_to_equi_rectangle('fd', in_file, out_file)
