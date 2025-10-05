@@ -54,7 +54,7 @@ def run_gdalwarp(in_file, out_file, xmin=-180, xmax=180, width=7200, height=3600
   print(out.stdout)
 
 
-def covert_to_equi_rectangle(coverage, in_file, out_file):
+def convert_to_equi_rectangle(coverage, in_file, out_file):
   lat_U, lng_U, lat_L, lng_L = get_wgs84_boundary_coords(coverage);
   ulx,uly = get_xy_from_latlng(lat_U, lng_U)
   lrx,lry = get_xy_from_latlng(lat_L, lng_L)

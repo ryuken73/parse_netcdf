@@ -75,7 +75,7 @@ def run_gdalwarp_keep_size(in_file, out_file, options):
   print(out.stdout)
 
 
-def covert_to_equi_rectangle(coverage, in_file, out_file):
+def convert_to_equi_rectangle(coverage, in_file, out_file):
   lat_U, lng_U, lat_L, lng_L = get_wgs84_boundary_coords(coverage);
   ulx,uly = get_xy_from_latlng(lat_U, lng_U)
   lrx,lry = get_xy_from_latlng(lat_L, lng_L)
@@ -114,4 +114,4 @@ def covert_to_equi_rectangle(coverage, in_file, out_file):
 #out_file = 'AWS_MIN_202509132330_RN_24HR_step1_keep_size_equi.png'
 #out_file = 'RDR_CMP_HSP_PUB_202509260845_step1_keep_size.png'
 
-#covert_to_equi_rectangle('rdr', in_file, out_file)
+#convert_to_equi_rectangle('rdr', in_file, out_file)
