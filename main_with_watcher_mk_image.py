@@ -102,6 +102,11 @@ def callback(nc_file):
   high_quality_image_name_color_equi = f'{save_dir}/{Path(out_file).stem}_color_equi.png'
   convert_to_equi_rectangle(nc_coverage, high_quality_image_name_mono, high_quality_image_name_mono_equi)
   convert_to_equi_rectangle(nc_coverage, high_quality_image_name_color, high_quality_image_name_color_equi)
+  print('saved high quality image[equi]:', high_quality_image_name_mono_equi, high_quality_image_name_color_equi)
+  # make normal map from mono image
+  high_quality_image_name_normal = f'{save_dir}/{Path(out_file).stem}_mono_equi_normal.png'
+  create_normal_map_for_gk2a(high_quality_image_name_mono_equi, high_quality_image_name_normal, height_scale=1.0)
+  print('saved high quality image[normal]:', high_quality_image_name_normal)
 
   # make highest image using PIL
   print('start downgrade image quality')
