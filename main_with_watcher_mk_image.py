@@ -100,8 +100,17 @@ def callback(nc_file):
   # make equi-rectangle image for unreal texture
   high_quality_image_name_mono_equi = f'{save_dir}/{Path(out_file).stem}_mono_equi.png'
   high_quality_image_name_color_equi = f'{save_dir}/{Path(out_file).stem}_color_equi.png'
+<<<<<<< HEAD
   convert_to_equi_rectangle(nc_coverage, high_quality_image_name_mono, high_quality_image_name_mono_equi)
   convert_to_equi_rectangle(nc_coverage, high_quality_image_name_color, high_quality_image_name_color_equi)
+=======
+  covert_to_equi_rectangle(nc_coverage, high_quality_image_name_mono, high_quality_image_name_mono_equi)
+  covert_to_equi_rectangle(nc_coverage, high_quality_image_name_color, high_quality_image_name_color_equi)
+  # make normal map for gk2a
+  high_quality_image_name_normal = f'{save_dir}/{Path(out_file).stem}_mono_equi_normal.png'
+  create_normal_map_for_gk2a(high_quality_image_name_mono_equi, high_quality_image_name_normal, height_scale=1.0)
+  print('saved normal map image:', high_quality_image_name_normal)
+>>>>>>> 1312ce091f42c2a128294618a4341d07ef728d3d
 
   # make highest image using PIL
   print('start downgrade image quality')
