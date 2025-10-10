@@ -9,6 +9,8 @@ import cartopy.feature as cfeature
 from pathlib import Path
 from PIL import Image
 from pyproj import Transformer, CRS
+from matplotlib.image import imread
+from matplotlib.pyplot import imsave as plt_imsave
 from matplotlib.colors import ListedColormap, BoundaryNorm, Normalize
 from rasterio.transform import Affine
 from rasterio.warp import calculate_default_transform, reproject, Resampling
@@ -19,6 +21,36 @@ wgs84_crs = CRS.from_epsg("4326")
 transformer_to_mercator = Transformer.from_crs(wgs84_crs, web_mercator_crs, always_xy=True)
 
 LAT_LON_NC_FILE = './assets/gk2a_ami_fd020ge_latlon.nc'
+
+def create_normal_map_for_gk2a(height_file='height_map.png', output_normal_path='normal_map.png', height_scale=1.0):
+    # Compute normal map from height_map (using original float heights for better precision)
+    # Use np.gradient for derivatives
+
+    # 이미지 읽기
+    img = imread(height_file)
+    if img.shape[2] == 4:  # 알파 채널 제거
+        img = img[:, :, :3]
+
+    # uint8로 변환
+    img_uint8 = (img * 255).astype(np.uint8)
+
+    # 벡터화된 높이 맵 생성
+    # height_map = np.zeros((img.shape[0], img.shape[1]), dtype=np.float32)
+    # G 채널 사용널
+    height_map = img_uint8[:, :, 1].astype(np.float32)
+
+    dy, dx = np.gradient(height_map)
+    
+    # Normal vector: (-dx, -dy, 1) normalized, scaled by height_scale
+    normals = np.dstack((-dx * height_scale, -dy * height_scale, np.ones_like(height_map)))
+    norms = np.linalg.norm(normals, axis=2, keepdims=True)
+    normals = normals / np.where(norms == 0, 1, norms)  # Avoid division by zero
+    
+    # Map to [0,1] for image
+    normals = (normals + 1) / 2
+    
+    # Save normal map
+    plt_imsave(output_normal_path, normals)
 
 # get_color_from_temperature 함수 (기존과 동일)
 def get_color_from_temperature(temp):
