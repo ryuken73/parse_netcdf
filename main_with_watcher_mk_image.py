@@ -2,7 +2,8 @@ import os
 from pathlib import Path
 from parseWithVectorNC import *
 from watchFolder_Thread import start_watching
-from to_epsg3857_image import covert_to_equi_rectangle
+#from to_epsg3857_image import convert_to_equi_rectangle
+from to_epsg3857_keep_size import convert_to_equi_rectangle
 from config import get_config
 import sys
 import multiprocessing
@@ -99,8 +100,8 @@ def callback(nc_file):
   # make equi-rectangle image for unreal texture
   high_quality_image_name_mono_equi = f'{save_dir}/{Path(out_file).stem}_mono_equi.png'
   high_quality_image_name_color_equi = f'{save_dir}/{Path(out_file).stem}_color_equi.png'
-  covert_to_equi_rectangle(nc_coverage, high_quality_image_name_mono, high_quality_image_name_mono_equi)
-  covert_to_equi_rectangle(nc_coverage, high_quality_image_name_color, high_quality_image_name_color_equi)
+  convert_to_equi_rectangle(nc_coverage, high_quality_image_name_mono, high_quality_image_name_mono_equi)
+  convert_to_equi_rectangle(nc_coverage, high_quality_image_name_color, high_quality_image_name_color_equi)
 
   # make highest image using PIL
   print('start downgrade image quality')

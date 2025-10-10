@@ -2,7 +2,8 @@ import os
 from pathlib import Path
 from parseWithVectorNC import *
 from watchFolder_Thread import start_watching
-from to_epsg3857_image import covert_to_equi_rectangle
+#from to_epsg3857_image import convert_to_equi_rectangle
+from to_epsg3857_keep_size import convert_to_equi_rectangle
 from config import get_config
 from PIL import Image
 import sys
@@ -42,7 +43,7 @@ def callback(rdr_file):
   print(f'done save image {rdr_image_name}')
   # make equi-rectangle image for unreal texture
   high_quality_image_name_rdr_equi = f'{save_dir}/{Path(rdr_file).stem}_step{highest_step}_equi.png'
-  covert_to_equi_rectangle('rdr', rdr_image_name, high_quality_image_name_rdr_equi)
+  convert_to_equi_rectangle('rdr', rdr_image_name, high_quality_image_name_rdr_equi)
 
   print('start downgrade image quality')
   for step in SAVE_IMAGE_STEPS:
