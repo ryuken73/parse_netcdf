@@ -44,6 +44,10 @@ def callback(rdr_file):
   # make equi-rectangle image for unreal texture
   high_quality_image_name_rdr_equi = f'{save_dir}/{Path(rdr_file).stem}_step{highest_step}_equi.png'
   convert_to_equi_rectangle('rdr', rdr_image_name, high_quality_image_name_rdr_equi)
+  print(f'done make equi-rectangle image {high_quality_image_name_rdr_equi}')
+  high_quality_image_name_rdr_equi_normal = f'{save_dir}/{Path(rdr_file).stem}_step{highest_step}_equi_normal.png'
+  create_normal_map_for_rdr(high_quality_image_name_rdr_equi, output_normal_path=high_quality_image_name_rdr_equi_normal)
+  print(f'done make normal map image {high_quality_image_name_rdr_equi_normal}')
 
   print('start downgrade image quality')
   for step in SAVE_IMAGE_STEPS:
