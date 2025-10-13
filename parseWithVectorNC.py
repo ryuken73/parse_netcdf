@@ -22,6 +22,79 @@ transformer_to_mercator = Transformer.from_crs(wgs84_crs, web_mercator_crs, alwa
 
 LAT_LON_NC_FILE = './assets/gk2a_ami_fd020ge_latlon.nc'
 
+def create_normal_map_for_rdr(input_path, output_normal_path='normal_map.png', color_map=None, intensity_map=None, height_scale=1.0):
+    """
+    Converts a color PNG image to a height map and normal map based on a color-to-height table.
+    
+    Args:
+    - input_path: Path to the input color PNG image.
+    - output_height_path: Path to save the height map (grayscale PNG).
+    - output_normal_path: Path to save the normal map (RGB PNG).
+    - color_map: Dictionary mapping color names or RGB tuples to height values.
+    - intensity_map: List or array of height values corresponding to the colors in color_map.
+    - height_scale: Scale factor for the normals (controls bump strength).
+    
+    Assumes the input image uses exact colors matching the table. Unmatched colors default to height 0.
+    """
+    
+    # 주어진 color_map과 intensity_map
+    color_map = np.array([
+        [0, 200, 255, 0], [0, 155, 245, 255], [0, 74, 245, 255], [0, 255, 0, 255], 
+        [0, 190, 0, 255], [0, 140, 0, 255], [0, 90, 0, 255], [255, 255, 0, 255], 
+        [255, 220, 31, 255], [249, 205, 0, 255], [224, 185, 0, 255], [204, 170, 0, 255], 
+        [255, 102, 0, 255], [255, 50, 0, 255], [210, 0, 0, 255], [180, 0, 0, 255], 
+        [224, 169, 255, 255], [201, 105, 255, 255], [179, 41, 255, 255], [147, 0, 228, 255], 
+        [179, 180, 222, 255], [76, 78, 177, 255], [0, 3, 144, 255], [51, 51, 51, 255]
+    ], dtype=np.uint8)
+    color_map = color_map[:, :3]  # Drop alpha for mapping
+
+    intensity_map = np.array([
+        0, 1, 2, 3,  # 하늘색
+        10, 11, 12, 13,      # 초록색
+        20, 21, 22, 23, 24,  # 노랑색
+        30, 31, 32, 33,  # 빨간색
+        40, 41, 42, 43,  # 보라색
+        60, 61, 62     # 파란색
+    ], dtype=np.float32)
+
+    # 이미지 읽기
+    img = imread(input_path)
+    if img.shape[2] == 4:  # 알파 채널 제거
+        img = img[:, :, :3]
+
+    # uint8로 변환
+    img_uint8 = (img * 255).astype(np.uint8)
+
+    # 벡터화된 높이 맵 생성
+    height_map = np.zeros((img.shape[0], img.shape[1]), dtype=np.float32)
+
+    # 모든 픽셀의 RGB 값을 1D 배열로 변환 (height * width, 3)
+    pixels = img_uint8.reshape(-1, 3)
+
+    # RGB 값을 인덱스로 변환하여 빠르게 매핑
+    # np.searchsorted를 사용하여 color_map에 매핑
+    pixel_indices = np.zeros(pixels.shape[0], dtype=np.int32)
+    for i, rgb in enumerate(color_map):
+        mask = np.all(pixels == rgb, axis=1)
+        pixel_indices[mask] = i
+
+    # 높이 값 매핑
+    height_map_flat = intensity_map[pixel_indices]
+    height_map = height_map_flat.reshape(img.shape[0], img.shape[1])
+
+    dy, dx = np.gradient(height_map)
+    
+    # Normal vector: (-dx, -dy, 1) normalized, scaled by height_scale
+    normals = np.dstack((-dx * height_scale, -dy * height_scale, np.ones_like(height_map)))
+    norms = np.linalg.norm(normals, axis=2, keepdims=True)
+    normals = normals / np.where(norms == 0, 1, norms)  # Avoid division by zero
+    
+    # Map to [0,1] for image
+    normals = (normals + 1) / 2
+    
+    # Save normal map
+    plt_imsave(output_normal_path, normals)
+
 def create_normal_map_for_gk2a(height_file='height_map.png', output_normal_path='normal_map.png', height_scale=1.0):
     # Compute normal map from height_map (using original float heights for better precision)
     # Use np.gradient for derivatives

@@ -37,11 +37,11 @@ def create_height_and_normal_map(input_path, output_height_path='height_map.png'
     # ], dtype=np.float32)
     intensity_map = np.array([
         0, 1, 2, 3,  # 하늘색
-        4, 5, 6, 7,      # 초록색
-        8, 9, 10, 11, 12,  # 노랑색
-        15, 20, 25, 30,  # 빨간색
-        40, 50, 60, 70,  # 보라색
-        90, 110, 150     # 파란색
+        10, 11, 12, 13,      # 초록색
+        20, 21, 22, 23, 24,  # 노랑색
+        30, 31, 32, 33,  # 빨간색
+        40, 41, 42, 43,  # 보라색
+        60, 61, 62     # 파란색
     ], dtype=np.float32)
 
     # 이미지 읽기
@@ -70,15 +70,15 @@ def create_height_and_normal_map(input_path, output_height_path='height_map.png'
     height_map = height_map_flat.reshape(img.shape[0], img.shape[1])
 
     # 높이 맵 정규화 [0, 255]로 변환
-    min_h = np.min(height_map)
-    max_h = np.max(height_map)
-    if max_h > min_h:
-        height_map_norm = ((height_map - min_h) / (max_h - min_h) * 255).astype(np.uint8)
-    else:
-        height_map_norm = np.zeros_like(height_map, dtype=np.uint8)
+    # min_h = np.min(height_map)
+    # max_h = np.max(height_map)
+    # if max_h > min_h:
+    #     height_map_norm = ((height_map - min_h) / (max_h - min_h) * 255).astype(np.uint8)
+    # else:
+    #     height_map_norm = np.zeros_like(height_map, dtype=np.uint8)
 
-    # 높이 맵 저장
-    plt_imsave(output_height_path, height_map_norm, cmap='gray')
+    # # 높이 맵 저장
+    # plt_imsave(output_height_path, height_map_norm, cmap='gray')
     
     # Compute normal map from height_map (using original float heights for better precision)
     # Use np.gradient for derivatives
@@ -110,8 +110,8 @@ in_file = 'e:\\RDR_CMP_HSP_PUB_202509132340_step1.png'
 
 create_height_and_normal_map(
     in_file, 
-    output_height_path='height_map.png', 
-    output_normal_path='normal_map.png'
+    output_height_path='height_map.png' ,
+    output_normal_path='normal_map_rdr.png'
 ) 
 
 # img = read_image(f'e:\\RDR_CMP_HSP_PUB_202509132340_step1.png')
