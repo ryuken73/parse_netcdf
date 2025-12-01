@@ -97,7 +97,8 @@ def hex_to_rgb(hex_color: str) -> tuple:
 
 
 #in_file = 'e:\\RDR_CMP_HSP_PUB_202509132340_step1.png'
-in_file = 'e:\\AWS_MIN_202509132330_RN_24HR_step1.png'
+# in_file = 'e:\\AWS_MIN_202509132330_RN_24HR_step1.png'
+in_file = 'e:\\AWS_MIN_202509132330_RN_24HR_step1_keep_size_equi.png'
 aws_color_list = [
     '#ffea6e', # 0 - 2
     '#ffdc1f', # 2 - 4
@@ -139,10 +140,19 @@ color_map = color_map[:, :3]  # Drop alpha for mapping
 #     40, 50, 60, 70,  # 보라색
 #     90, 110, 150     # 파란색
 # ], dtype=np.float32)
+# intensity_map = np.array([
+#     0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+#     10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+#     20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+# ], dtype=np.float32)
 intensity_map = np.array([
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-    10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-    20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+    0, 2, 4, 6, 
+    10, 12, 14, 16,
+    20, 22, 24, 26, 28, 
+    30, 32, 34, 36, 
+    40, 42, 44, 46,
+    50, 52, 54, 56,
+    60, 62, 64, 66,
 ], dtype=np.float32)
 
 create_height_and_normal_map(
