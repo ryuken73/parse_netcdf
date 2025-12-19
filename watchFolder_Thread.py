@@ -43,7 +43,7 @@ class FileWatcher(FileSystemEventHandler):
 
             last_size = -1
             stable_count = 0
-            max_checks = 5
+            max_checks = 10 
             check_interval = 1
 
             while stable_count < max_checks:

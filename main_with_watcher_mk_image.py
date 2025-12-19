@@ -8,7 +8,7 @@ from config import get_config
 import sys
 import multiprocessing
 
-os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
+# os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
 config = get_config()
 print(f'Running in {config.ENV} mode')
 print(f'OUT_PATH = {config.OUT_PATH}')
@@ -85,17 +85,17 @@ def callback(nc_file):
   image_size = IMAGE_SIZE[nc_coverage][highest_step]
   bounds = BOUNDS[nc_coverage]
   processes = []
-  # generate_image_from_data_fast(parse_result, high_quality_image_name_mono, image_size, bounds, color_mode='gray')
-  p1 = multiprocessing.Process(target=generate_image_from_data_fast, args=(parse_result, high_quality_image_name_mono, image_size, bounds, 'gray'))
-  processes.append(p1)
-  p1.start()
-  p2 = multiprocessing.Process(target=generate_image_from_data_fast, args=(parse_result, high_quality_image_name_color, image_size, bounds, 'color'))
-  processes.append(p2)
-  p2.start()
-  # generate_image_from_data_fast(parse_result, high_quality_image_name_color, image_size, bounds, color_mode='color')
-  for p in processes:
-    p.join()
+  # p1 = multiprocessing.Process(target=generate_image_from_data_fast, args=(parse_result, high_quality_image_name_mono, image_size, bounds, 'gray'))
+  # processes.append(p1)
+  # p1.start()
+  # p2 = multiprocessing.Process(target=generate_image_from_data_fast, args=(parse_result, high_quality_image_name_color, image_size, bounds, 'color'))
+  # processes.append(p2)
+  # p2.start()
+  # for p in processes:
+  #   p.join()
+  generate_image_from_data_fast(parse_result, high_quality_image_name_mono, image_size, bounds, color_mode='gray')
   print('saved high quality image[mono]:', high_quality_image_name_mono)
+  generate_image_from_data_fast(parse_result, high_quality_image_name_color, image_size, bounds, color_mode='color')
   print('saved high quality image[color]:', high_quality_image_name_color)
   # make equi-rectangle image for unreal texture
   high_quality_image_name_mono_equi = f'{save_dir}/{Path(out_file).stem}_mono_equi.png'
