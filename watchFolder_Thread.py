@@ -68,6 +68,9 @@ class FileWatcher(FileSystemEventHandler):
                 time.sleep(check_interval)
 
             print(f"파일 쓰기 완료: {file_path} at {datetime.now()} (크기: {last_size} bytes)")
+            if 'ea020lc' in file_path:
+                time.sleep(20)  # ea는 20초 더 기다린 후 callback
+                print(f"fd 파일 추가 지연 후 처리 시작: {file_path}")
             self.process_file(file_path)
             with self.lock:
                 del self.pending_files[file_path]
