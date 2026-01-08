@@ -74,7 +74,7 @@ def callback(nc_file):
   highest_step = min(SAVE_IMAGE_STEPS[nc_coverage])
   out_file = get_json_fname(save_dir, nc_file, highest_step)
   attr_to_get = 'image_pixel_values'
-  global parse_result
+  # global parse_result
   print(f'start read ir105 fast')
   if nc_coverage == 'ea' or nc_coverage == 'ko':
     parse_result = read_ir105_ea_fast_with_vector(nc_file, highest_step, attr_to_get, conversion_file)

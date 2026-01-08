@@ -246,7 +246,7 @@ def generate_image_from_data_fast(data, output_path, image_size=(600, 520), boun
     def apply_color_mapping(values):
         colors = np.zeros((height, width, 4), dtype=np.uint8)
         flat_values = values.flatten()
-        global flat_colors
+        # global flat_colors
         if color_mode == 'gray': 
           flat_colors = np.array([get_mono_color_from_temperature(val) if val != -9999 else [0, 0, 0, 0] 
                                 for val in flat_values]) 
