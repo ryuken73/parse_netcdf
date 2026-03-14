@@ -13,6 +13,7 @@ config = get_config()
 print(f'Running in {config.ENV} mode')
 print(f'OUT_PATH_WIND = {config.OUT_PATH_WIND}')
 print(f'WATCH_PATH_WIND = {config.WATCH_PATH_WIND}')
+print(f'WIND_FETCH_INTERVAL = {config.WIND_FETCH_INTERVAL}')
 
 LEVELS = ["lev_10_m_above_ground","lev_850_mb", "lev_500_mb"]
 PARAMS_FOR_LEVELS = {
@@ -43,6 +44,7 @@ VALUES = ["on"] * len(LEVELS)
 
 in_dir = config.WATCH_PATH_WIND
 out_dir = config.OUT_PATH_WIND
+sleep_interval = config.WIND_FETCH_INTERVAL
 
 def get_utc_date_time():
   # 현재 UTC 시간 가져오기
@@ -324,4 +326,4 @@ while True:
       print(f"%%% Data saved to {target_file_level}")
 
   print("Sleeping for 10 minutes...")
-  time.sleep(600)
+  time.sleep(sleep_interval)
