@@ -60,6 +60,8 @@ def get_utc_date_time():
   return date_str, time_str
 
 def download_file(date, hours, in_dir, sub_dir, level=1, time_offset="000"):
+  date='20260313'
+  hours='18'
   params = {
     "dir": f"/gfs.{date}/{hours}/atmos/",
     "file": f"gfs.t{hours}z.pgrb2.{level}.f{time_offset}",
@@ -68,7 +70,7 @@ def download_file(date, hours, in_dir, sub_dir, level=1, time_offset="000"):
   }
   params.update(zip(LEVELS, VALUES))
   print(f"Downloading GFS data for date hours {date} {hours}Z {level} {time_offset}...")
-  download_url = f"https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_{level}.pl"
+  download_url = f"https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_{level}_1hr.pl"
   print(download_url, params)
   response = requests.get(download_url, params=params)
   output_File = f"{in_dir}/{sub_dir}/GFS_WIND_{date}_{hours}_{level}_{time_offset}.grib2"
@@ -255,7 +257,7 @@ data_levels = ["0p25"]
 
 time_offsets = {
   "1p00": ["000", "003", "006"],
-  "0p25": ["000", "001", "002", "003", "004", "005", "006"]
+  "0p25": ["000", "001", "002", "003", "004", "005", "006", "007", "008", "009", "010", "011", "012", "013", "014", "015", "016", "017", "018", "019", "020", "021", "022", "023", "024", "025", "026", "027", "028", "029", "030", "031", "032", "033", "034", "035", "036", "037", "038", "039", "040", "041", "042", "043", "044", "045", "046", "047", "048"]
 }
 
 # use prev_date_hours to get missed hours
