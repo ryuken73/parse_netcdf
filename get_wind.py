@@ -60,8 +60,6 @@ def get_utc_date_time():
   return date_str, time_str
 
 def download_file(date, hours, in_dir, sub_dir, level=1, time_offset="000"):
-  date='20260313'
-  hours='18'
   params = {
     "dir": f"/gfs.{date}/{hours}/atmos/",
     "file": f"gfs.t{hours}z.pgrb2.{level}.f{time_offset}",
