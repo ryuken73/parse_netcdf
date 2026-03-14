@@ -16,6 +16,7 @@ class Config:
   WATCH_PATH_RDR = os.getenv("WATCH_PATH_RDR")
   WATCH_PATH_AWS = os.getenv("WATCH_PATH_AWS")
   WATCH_PATH_WIND = os.getenv("WATCH_PATH_WIND")
+  WIND_FETCH_INTERVAL = int(os.getenv("WIND_FETCH_INTERVAL")) 
   OS_SEP = os.getenv("OS_SEP")
 
 # 환경에 따른 설정 가져오기
