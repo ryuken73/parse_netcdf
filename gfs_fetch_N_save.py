@@ -150,7 +150,7 @@ def run_fetcher():
                                     break
                         
                         if results:
-                            file_base = f"{OUT_DIR}/{sub_dir}/gfs_{t_key.lower()}_{p['suffix']}_{utc_str}_{kor_str}"
+                            file_base = f"{OUT_DIR}/{sub_dir}/gfs_{DATA_RES}_{t_key.lower()}_{p['suffix']}_{utc_str}_{kor_str}"
                             # 1. JSON 저장
                             with open(f"{file_base}.json", 'w') as f:
                                 json.dump(results, f)
