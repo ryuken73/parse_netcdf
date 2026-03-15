@@ -68,19 +68,22 @@ def download_file(date, hours, in_dir, sub_dir, level=1, time_offset="000"):
     "var_VGRD": "on",
     "var_UGRD": "on",
   }
+  output_File = f"{in_dir}/{sub_dir}/GFS_WIND_{date}_{hours}_{level}_{time_offset}.grib2"
+  if os.path.exists(output_File):
+    print(f"File already exists: {output_File}")
+    return output_File, False
   params.update(zip(LEVELS, VALUES))
   print(f"Downloading GFS data for date hours {date} {hours}Z {level} {time_offset}...")
   download_url = f"https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_{level}_1hr.pl"
   print(download_url, params)
   response = requests.get(download_url, params=params)
-  output_File = f"{in_dir}/{sub_dir}/GFS_WIND_{date}_{hours}_{level}_{time_offset}.grib2"
   if response.status_code == 200:
     with open(output_File, 'wb') as f:
       f.write(response.content)
-    return output_File
+    return output_File, True
   else:
     print(f"Failed to download file: {response.status_code}")
-    return None
+    return None, False
 
 def show_grib_file(grbs_file):
   grbs = pygrib.open(grbs_file)
@@ -318,18 +321,25 @@ while True:
     sub_dir = f"{kor_string[:4]}-{kor_string[4:6]}-{kor_string[6:8]}"
     os.makedirs(f"{in_dir}/{sub_dir}", exist_ok=True)
     os.makedirs(f"{out_dir}/{sub_dir}", exist_ok=True)
+
+    grbs_file, is_new = download_file(date, hour, in_dir, sub_dir, level=level, time_offset=time_offset)
+    if grbs_file is None:
+      print(f"%%% Will retry downloading later for {date} {hour} {level} {time_offset}")
+      continue
+
+    if not is_new:
+      print(f"%%% File already processed for {date} {hour} {level} {time_offset}, skipping...")
+      continue
+
     # if 10m json exists, should not start download grib file
     target_file = f"{out_dir}/{sub_dir}/gfs_wind_10m_{utc_string}_{kor_string}.json"
     print(f"### Start Processing {target_file} level {level} {datetime.now()}")
 
     # if target_file already exists, continue
-    if os.path.exists(target_file):
-      print(f"%%% {target_file} already exists, skipping...")
-      continue
-    grbs_file = download_file(date, hour, in_dir, sub_dir, level=level, time_offset=time_offset)
-    if grbs_file is None:
-      print(f"%%% Will retry downloading later for {date} {hour} {level} {time_offset}")
-      continue
+    # if os.path.exists(target_file):
+    #   print(f"%%% {target_file} already exists, skipping...")
+    #   continue
+
     grbs = show_grib_file(grbs_file)
     for LEVEL in LEVELS:
       results = get_wind_data(grbs, LEVEL)
