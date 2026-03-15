@@ -1,3 +1,4 @@
+import subprocess
 import json
 import os
 import numpy as np
@@ -100,9 +101,35 @@ def process_and_save_image_com(data_list, type_key, save_path):
         plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
         plt.savefig(save_path, dpi=100, facecolor=cfg["facecolor"])
         plt.close()
+        # [Step 3] Web Mercator 변환 프로세스
+        temp_tif = save_path.replace(".png", "_temp.tif")
+        merc_png = save_path.replace(".png", "_merc.png") # 웹용 파일명 구분
+        
+        # 1. EPSG:4326 좌표 정보 주입 (TIF 생성)
+        subprocess.run([
+            'gdal_translate', '-of', 'GTiff', 
+            '-a_srs', 'EPSG:4326', 
+            '-a_ullr', '0', '90', '360', '-90', 
+            save_path, temp_tif
+        ], check=True, stdout=subprocess.DEVNULL)
+
+        # 2. EPSG:3857로 투영 변환 (Mercator)
+        subprocess.run([
+            'gdalwarp', '-t_srs', 'EPSG:3857', '-s_srs', 'EPSG:4326',
+            '-te', '-20037508.34', '-20037508.34', '20037508.34', '20037508.34',
+            '-r', 'bilinear', '-of', 'PNG',
+            temp_tif, merc_png
+        ], check=True, stdout=subprocess.DEVNULL)
+
+        # [Step 4] 임시 파일 및 불필요한 파일 정리
+        if os.path.exists(temp_tif): os.remove(temp_tif)
+        aux_xml = merc_png + ".aux.xml"
+        if os.path.exists(aux_xml): os.remove(aux_xml)
+
+        print(f"   [SUCCESS] Generated Equi & Mercator for {type_key}")
         return True
     except Exception as e:
-        print(f"      [ERROR] Render failed: {e}")
+        print(f"   [ERROR] Render failed: {e}")
         return False
 
 # =================================================================

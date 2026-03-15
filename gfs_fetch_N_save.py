@@ -67,6 +67,7 @@ def download_combined_gfs_com(date, hour, offset):
     final_path = f"{IN_DIR}/combined_raw/{base_name}_done.grib2"
     temp_path = f"{IN_DIR}/combined_raw/{base_name}.tmp"
 
+    print(f"checking existing file for GFS {final_path}")
     if os.path.exists(final_path): 
         print(f"[FETCH] Using existing GFS {date} {hour}Z, F{offset}...")
         return final_path, False
@@ -87,6 +88,8 @@ def download_combined_gfs_com(date, hour, offset):
                 for chunk in res.iter_content(8192): f.write(chunk)
             os.rename(temp_path, final_path); 
             return final_path, True # 새로 받은 파일 여부 반환
+        else:
+            print(f"   => Download failed with status code: {res.status_code}")
     except Exception as e:
         print(f"   => Download Error: {e}")
         if os.path.exists(temp_path): os.remove(temp_path)
