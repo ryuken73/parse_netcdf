@@ -16,6 +16,7 @@ DOWNSAMPLE = False
 SLEEP_TIME = 3600
 DATA_RES = "0p25"
 MAX_TIME_OFFSET = 120 # 최대 시간 오프셋 (예: 120시간까지)
+REMOVE_JSON_AFTER_PROCESS = True # 처리 후 JSON 파일 삭제 여부
 
 EXTRACTION_CONFIG = {
     "TMP": {
@@ -158,6 +159,8 @@ def run_fetcher():
                             process_and_save_image_com(results, t_key, f"{file_base}.png")
                             # print(f"   [SUCCESS] Saved: gfs_{t_key.lower()}_{p['suffix']}...")
                             print(f"   [SUCCESS] Saved json&png: {file_base}")
+                            if REMOVE_JSON_AFTER_PROCESS and os.path.exists(f"{file_base}.json"):
+                                os.remove(f"{file_base}.json")
 
                 grbs.close()
             except Exception as e:
