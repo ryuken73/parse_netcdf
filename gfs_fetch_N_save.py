@@ -4,7 +4,10 @@ import json
 import os
 import time
 import requests
+import argparse
+import re
 from datetime import datetime, timezone, timedelta
+from glob import glob
 from config import get_config
 # generator 모듈에서 함수 불러오기
 from gfs_gen_image import process_and_save_image_com
@@ -15,15 +18,15 @@ from gfs_gen_image import process_and_save_image_com
 DOWNSAMPLE = False
 SLEEP_TIME = 3600
 DATA_RES = "0p25"
-MAX_TIME_OFFSET = 120 # 최대 시간 오프셋 (예: 120시간까지)
-REMOVE_JSON_AFTER_PROCESS = True # 처리 후 JSON 파일 삭제 여부
+MAX_TIME_OFFSET = 120 
+REMOVE_JSON_AFTER_PROCESS = True 
 
 EXTRACTION_CONFIG = {
     "TMP": {
         "var_key": "var_TMP",
         "levels": ["lev_2_m_above_ground", "lev_850_mb", "lev_500_mb"],
         "params": {
-            "lev_2_m_above_ground": {"name": "2 metre temperature", "type": "heightAboveGround", "level": 2, "suffix": "2m"},
+            "lev_2_m_above_ground": {"name": "2 metre temperature", "type": "heightAboveGround", "level": 2, "suffix": "10m"},
             "lev_850_mb": {"name": "Temperature", "type": "isobaricInhPa", "level": 850, "suffix": "850mb"},
             "lev_500_mb": {"name": "Temperature", "type": "isobaricInhPa", "level": 500, "suffix": "500mb"},
         }
@@ -32,7 +35,7 @@ EXTRACTION_CONFIG = {
         "var_key": "var_RH",
         "levels": ["lev_2_m_above_ground", "lev_850_mb", "lev_500_mb"],
         "params": {
-            "lev_2_m_above_ground": {"name": "2 metre relative humidity", "type": "heightAboveGround", "level": 2, "suffix": "2m"},
+            "lev_2_m_above_ground": {"name": "2 metre relative humidity", "type": "heightAboveGround", "level": 2, "suffix": "10m"},
             "lev_850_mb": {"name": "Relative humidity", "type": "isobaricInhPa", "level": 850, "suffix": "850mb"},
             "lev_500_mb": {"name": "Relative humidity", "type": "isobaricInhPa", "level": 500, "suffix": "500mb"},
         }
@@ -67,12 +70,11 @@ def download_combined_gfs_com(date, hour, offset):
     final_path = f"{IN_DIR}/combined_raw/{base_name}_done.grib2"
     temp_path = f"{IN_DIR}/combined_raw/{base_name}.tmp"
 
-    print(f"checking existing file for GFS {final_path}")
     if os.path.exists(final_path): 
         print(f"[FETCH] Using existing GFS {date} {hour}Z, F{offset}...")
         return final_path, False
-    os.makedirs(f"{IN_DIR}/combined_raw", exist_ok=True)
     
+    os.makedirs(f"{IN_DIR}/combined_raw", exist_ok=True)
     params = {"dir": f"/gfs.{date}/{hour}/atmos/", "file": f"gfs.t{hour}z.pgrb2.{DATA_RES}.f{offset}"}
     for cfg in EXTRACTION_CONFIG.values():
         v_keys = cfg["var_key"] if isinstance(cfg["var_key"], list) else [cfg["var_key"]]
@@ -86,8 +88,8 @@ def download_combined_gfs_com(date, hour, offset):
         if res.status_code == 200:
             with open(temp_path, 'wb') as f:
                 for chunk in res.iter_content(8192): f.write(chunk)
-            os.rename(temp_path, final_path); 
-            return final_path, True # 새로 받은 파일 여부 반환
+            os.rename(temp_path, final_path)
+            return final_path, True
         else:
             print(f"   => Download failed with status code: {res.status_code}")
     except Exception as e:
@@ -102,74 +104,104 @@ def format_header_com(name, res):
         "dx": res, "dy": res
     }
 
+def process_grib_file_com(grib_file, date, hour, offset):
+    """GRIB 파일 하나를 처리하여 JSON/PNG 생성"""
+    try:
+        base_utc_dt = datetime.strptime(f"{date}{hour}00", '%Y%m%d%H%M')
+        utc_dt = base_utc_dt + timedelta(hours=int(offset))
+        kor_dt = utc_dt + timedelta(hours=9)
+        
+        utc_str = utc_dt.strftime('%Y%m%d%H%M')
+        kor_str = kor_dt.strftime('%Y%m%d%H%M')
+        sub_dir = kor_dt.strftime('%Y-%m-%d')
+        os.makedirs(f"{OUT_DIR}/{sub_dir}", exist_ok=True)
+
+        grbs = pygrib.open(grib_file)
+        for t_key, t_cfg in EXTRACTION_CONFIG.items():
+            for lvl_key in t_cfg["levels"]:
+                p = t_cfg["params"][lvl_key]
+                grbs.seek(0)
+                results = []
+
+                if t_key == "WIND":
+                    u = v = None
+                    for g in grbs:
+                        if g.level == p["level"] and g.typeOfLevel == p["type"]:
+                            if g.name == p["U_name"]: u = g.values.tolist()
+                            if g.name == p["V_name"]: v = g.values.tolist()
+                    if u and v:
+                        results = [
+                            {"header": format_header_com(p["U_name"], 0.25), "data": u},
+                            {"header": format_header_com(p["V_name"], 0.25), "data": v}
+                        ]
+                else:
+                    for g in grbs:
+                        if g.name == p["name"] and g.level == p["level"] and g.typeOfLevel == p["type"]:
+                            results = [{"header": format_header_com(p["name"], 0.25), "data": g.values.tolist()}]
+                            break
+                
+                if results:
+                    file_base = f"{OUT_DIR}/{sub_dir}/gfs_{DATA_RES}_{t_key.lower()}_{p['suffix']}_{utc_str}_{kor_str}"
+                    # 1. JSON 저장
+                    with open(f"{file_base}.json", 'w') as f:
+                        json.dump(results, f)
+                    # 2. PNG 저장
+                    process_and_save_image_com(results, t_key, f"{file_base}.png")
+                    print(f"   [SUCCESS] Saved json&png: {file_base}")
+                    
+                    if REMOVE_JSON_AFTER_PROCESS and os.path.exists(f"{file_base}.json"):
+                        os.remove(f"{file_base}.json")
+        grbs.close()
+    except Exception as e:
+        print(f"   [ERROR] Processing {grib_file}: {e}")
+
 # =================================================================
-# 3. 메인 프로세스
+# 3. 실행 모드 루틴
 # =================================================================
 
 def run_fetcher():
+    """기존 실시간 무한 루프 모드"""
+    print("Starting Fetcher Mode...")
     while True:
         date, hour = get_utc_date_time_com()
-        
         for offset in TIME_OFFSETS:
-            base_utc_dt = datetime.strptime(f"{date}{hour}00", '%Y%m%d%H%M')
-            utc_dt = base_utc_dt + timedelta(hours=int(offset))
-            kor_dt = utc_dt + timedelta(hours=9)
-            
-            utc_str = utc_dt.strftime('%Y%m%d%H%M')
-            kor_str = kor_dt.strftime('%Y%m%d%H%M')
-            sub_dir = kor_dt.strftime('%Y-%m-%d')
-            os.makedirs(f"{OUT_DIR}/{sub_dir}", exist_ok=True)
-
             grib_file, is_new = download_combined_gfs_com(date, hour, offset)
-            # 만약 새로 받은 파일이 아니라면(이미 처리된 사이클), 다음 offset으로 스킵
-            if not is_new:
-                # 단, 만약 raw 파일은 있는데 결과물(png/json)이 사고로 삭제되었을 경우를 대비해 
-                # 체크 로직을 넣고 싶다면 여기서 체크 가능합니다.
-                continue
-            print(f"   => New data found! Processing F{offset}...")
-
-            try:
-                grbs = pygrib.open(grib_file)
-                for t_key, t_cfg in EXTRACTION_CONFIG.items():
-                    for lvl_key in t_cfg["levels"]:
-                        p = t_cfg["params"][lvl_key]
-                        grbs.seek(0)
-                        results = []
-
-                        if t_key == "WIND":
-                            u = v = None
-                            for g in grbs:
-                                if g.level == p["level"] and g.typeOfLevel == p["type"]:
-                                    if g.name == p["U_name"]: u = g.values.tolist()
-                                    if g.name == p["V_name"]: v = g.values.tolist()
-                            if u and v:
-                                results = [
-                                    {"header": format_header_com(p["U_name"], 0.25), "data": u},
-                                    {"header": format_header_com(p["V_name"], 0.25), "data": v}
-                                ]
-                        else:
-                            for g in grbs:
-                                if g.name == p["name"] and g.level == p["level"] and g.typeOfLevel == p["type"]:
-                                    results = [{"header": format_header_com(p["name"], 0.25), "data": g.values.tolist()}]
-                                    break
-                        
-                        if results:
-                            file_base = f"{OUT_DIR}/{sub_dir}/gfs_{DATA_RES}_{t_key.lower()}_{p['suffix']}_{utc_str}_{kor_str}"
-                            # 1. JSON 저장
-                            with open(f"{file_base}.json", 'w') as f:
-                                json.dump(results, f)
-                            # 2. 모듈 호출하여 PNG 저장
-                            process_and_save_image_com(results, t_key, f"{file_base}.png")
-                            # print(f"   [SUCCESS] Saved: gfs_{t_key.lower()}_{p['suffix']}...")
-                            print(f"   [SUCCESS] Saved json&png: {file_base}")
-                            if REMOVE_JSON_AFTER_PROCESS and os.path.exists(f"{file_base}.json"):
-                                os.remove(f"{file_base}.json")
-
-                grbs.close()
-            except Exception as e:
-                print(f"   [ERROR] Processing Loop: {e}")
-
+            if is_new or grib_file: # 여기서는 is_new 체크를 통해 중복 방지
+                if is_new:
+                    print(f"   => New data found! Processing F{offset}...")
+                    process_grib_file_com(grib_file, date, hour, offset)
+            
         print(f"Cycle finished. Sleeping {SLEEP_TIME}s..."); time.sleep(SLEEP_TIME)
 
+def run_batch_reprocess(target_dir):
+    """특정 폴더의 GRIB2 파일을 모두 읽어 재처리"""
+    print(f"Starting Batch Reprocess Mode: {target_dir}")
+    # GFS_YYYYMMDD_HH_FFF_done.grib2 형태 검색
+    files = glob(os.path.join(target_dir, "*.grib2"))
+    
+    if not files:
+        print("No .grib2 files found in the directory.")
+        return
+
+    for grib_file in sorted(files):
+        # 파일명에서 정보 추출 (패턴: GFS_20260311_00_000_done.grib2)
+        match = re.search(r'GFS_(\d{8})_(\d{2})_(\d{3})', os.path.basename(grib_file))
+        if match:
+            date, hour, offset = match.groups()
+            print(f"Processing batch file: {os.path.basename(grib_file)}")
+            process_grib_file_com(grib_file, date, hour, offset)
+        else:
+            print(f"Skipping file (name format mismatch): {os.path.basename(grib_file)}")
+
 if __name__ == "__main__":
-    run_fetcher()
+    parser = argparse.ArgumentParser(description="GFS Fetch and Process Tool")
+    parser.add_argument("--grib-dir", type=str, help="Directory path to reprocess all GRIB2 files")
+    
+    args = parser.parse_args()
+    
+    if args.grib_dir:
+        # 재생성 모드 실행
+        run_batch_reprocess(args.grib_dir)
+    else:
+        # 기존 실시간 루프 모드 실행
+        run_fetcher()
