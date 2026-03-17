@@ -104,7 +104,7 @@ def format_header_com(name, res):
         "dx": res, "dy": res
     }
 
-def process_grib_file_com(grib_file, date, hour, offset):
+def process_grib_file_com(grib_file, date, hour, offset, remove_json=REMOVE_JSON_AFTER_PROCESS):
     """GRIB 파일 하나를 처리하여 JSON/PNG 생성"""
     try:
         base_utc_dt = datetime.strptime(f"{date}{hour}00", '%Y%m%d%H%M')
@@ -149,7 +149,7 @@ def process_grib_file_com(grib_file, date, hour, offset):
                     process_and_save_image_com(results, t_key, f"{file_base}.png")
                     print(f"   [SUCCESS] Saved json&png: {file_base}")
                     
-                    if REMOVE_JSON_AFTER_PROCESS and os.path.exists(f"{file_base}.json"):
+                    if remove_json and os.path.exists(f"{file_base}.json"):
                         os.remove(f"{file_base}.json")
         grbs.close()
     except Exception as e:
@@ -189,7 +189,8 @@ def run_batch_reprocess(target_dir):
         if match:
             date, hour, offset = match.groups()
             print(f"Processing batch file: {os.path.basename(grib_file)}")
-            process_grib_file_com(grib_file, date, hour, offset)
+            remove_json_file = False # 배치 모드에서는 JSON 파일을 유지할지 여부 (필요시 True로 변경)
+            process_grib_file_com(grib_file, date, hour, offset, remove_json_file)
         else:
             print(f"Skipping file (name format mismatch): {os.path.basename(grib_file)}")
 
