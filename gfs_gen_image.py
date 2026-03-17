@@ -76,7 +76,7 @@ WIND_COLORS = [
 VIS_CONFIG = {
     "TMP": {
         "cmap": LinearSegmentedColormap.from_list('tmp', NOAA_TMP_COLORS, N=1024),
-        "vmin": -80, "vmax": 55, "sigma": 0, "convert_celsius": False, "facecolor": 'black'
+        "vmin": -80, "vmax": 55, "sigma": 0, "convert_celsius": True, "facecolor": 'black'
     },
     "RH": {
         "cmap": LinearSegmentedColormap.from_list('rh', RH_COLORS, N=1024),
