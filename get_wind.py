@@ -348,6 +348,7 @@ while True:
       with open(target_file_level, 'w') as f:
         json.dump(results, f)
       print(f"%%% Data saved to {target_file_level}")
+    grbs.close()
 
   print("Sleeping for 10 minutes...")
   time.sleep(sleep_interval)
