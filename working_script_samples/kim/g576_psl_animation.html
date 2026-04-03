@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>KIM 10분 간격 고해상도 애니메이션</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body { margin: 0; background: #111; color: white; font-family: sans-serif; }
+        #ui { position: absolute; top: 20px; left: 20px; z-index: 100; background: rgba(0,0,0,0.85); padding: 20px; border-radius: 12px; width: 320px; border: 1px solid #444; }
+        .progress-container { width: 100%; height: 6px; background: #333; margin: 10px 0; border-radius: 3px; }
+        #loader { height: 100%; width: 0%; background: #00d2ff; border-radius: 3px; transition: width 0.1s; }
+        canvas { display: block; }
+        .slider { width: 100%; cursor: pointer; }
+        .time-info { display: flex; justify-content: space-between; align-items: center; }
+        #timeLabel { font-size: 1.4em; color: #00d2ff; font-weight: bold; }
+        button { background: #444; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #666; }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <div id="status">데이터 준비 중...</div>
+    <div class="progress-container"><div id="loader"></div></div>
+    <div class="time-info">
+        <span id="timeLabel">FT00:00</span>
+        <button id="playBtn">Play</button>
+    </div>
+    <input type="range" id="frameSlider" class="slider" min="0" max="144" value="0">
+    <div style="font-size: 11px; color: #888; margin-top: 10px;">10분 간격 선형 보간 (Linear Interpolated)</div>
+</div>
+
+<canvas id="mapCanvas"></canvas>
+
+<script>
+const MIN_P = 900.0, MAX_P = 1100.0;
+const totalFrames = 145; // 0부터 144까지
+const canvas = document.getElementById('mapCanvas');
+const ctx = canvas.getContext('2d');
+const slider = document.getElementById('frameSlider');
+const timeLabel = document.getElementById('timeLabel');
+const playBtn = document.getElementById('playBtn');
+const loader = document.getElementById('loader');
+
+let grids = [];
+let currentFrame = 0;
+let isPlaying = false;
+let width, height;
+let contours, pathGenerator;
+
+async function init() {
+    for (let i = 0; i < totalFrames; i++) {
+        const img = new Image();
+        img.src = `./kim_png_10min/frame_${String(i).padStart(3, '0')}.png`;
+        await img.decode();
+
+        if (i === 0) {
+            width = img.width; height = img.height;
+            canvas.width = width; canvas.height = height;
+            contours = d3.contours().size([width, height]).smooth(true);
+            pathGenerator = d3.geoPath(null, ctx);
+        }
+
+        const off = new OffscreenCanvas(width, height);
+        const oCtx = off.getContext('2d');
+        oCtx.drawImage(img, 0, 0);
+        const pixels = oCtx.getImageData(0, 0, width, height).data;
+        
+        const grid = new Float32Array(width * height);
+        for (let j = 0; j < pixels.length; j += 4) {
+            grid[j / 4] = MIN_P + (pixels[j] / 255) * (MAX_P - MIN_P);
+        }
+        grids.push(grid);
+        loader.style.width = `${((i + 1) / totalFrames) * 100}%`;
+        if(i % 10 === 0) document.getElementById('status').innerText = `로딩 중: ${i}/${totalFrames}`;
+    }
+
+    document.getElementById('status').innerText = "재생 준비 완료";
+    renderFrame(0);
+}
+
+// ... (기존 init 함수 등은 동일)
+
+function renderFrame(idx) {
+    const grid = grids[idx];
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = "#111"; // 배경색
+    ctx.fillRect(0, 0, width, height);
+
+    // 1. 등압선 그리기 (기존 로직 동일)
+    const thresholds = d3.range(980, 1044, 4);
+    thresholds.forEach(t => {
+        const contourData = contours.thresholds([t])(grid)[0];
+        ctx.beginPath();
+        ctx.strokeStyle = t > 1013 ? 'rgba(255, 85, 85, 0.7)' : 'rgba(85, 170, 255, 0.7)';
+        ctx.lineWidth = 1.8;
+        pathGenerator(contourData);
+        ctx.stroke();
+    });
+
+    // 2. [수정] 여러 개의 고/저 기압 마크 그리기 (Smoothing 및 격자 기반 탐지)
+    // 데이터 노이즈로 인한 중심점의 미세한 떨림을 방지하기 위해 가우시안 블러를 살짝 적용한 임시 그리드를 사용합니다.
+    const smoothedGrid = smoothGrid(grid, width, height, 2); // 반경 2픽셀 블러
+    drawMultipleHighLow(ctx, smoothedGrid, width, height);
+
+    // 3. 시간 표시 (기존 로직 동일)
+    const totalMinutes = idx * 10;
+    const hrs = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    timeLabel.innerText = `FT${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+}
+
+// --- [추가] 고/저 기압 탐지용 보조 함수들 ---
+
+/**
+ * 데이터를 부드럽게 만들어 극점 탐지 시 노이즈를 줄여주는 간단한 박스 블러 함수
+ */
+function smoothGrid(grid, w, h, radius) {
+    const smoothed = new Float32Array(w * h);
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            let sum = 0, count = 0;
+            for (let dy = -radius; dy <= radius; dy++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                    const nx = x + dx, ny = y + dy;
+                    if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+                        sum += grid[ny * w + nx];
+                        count++;
+                    }
+                }
+            }
+            smoothed[y * w + x] = sum / count;
+        }
+    }
+    return smoothed;
+}
+
+/**
+ * [완벽 이동 버전] 그리드 전체에서 진짜 중심점(극점)을 찾아 H/L을 여러 개 그리는 함수
+ */
+function drawMultipleHighLow(ctx, grid, w, h) {
+    // 1. 탐색 설정
+    const thresholdH = 1020; // H를 띄울 최소 기압
+    const thresholdL = 1000; // L을 띄울 최대 기압
+    const minDist = 120;     // 기호들 사이의 최소 거리 (너무 다닥다닥 붙지 않게)
+    const maxCount = 4;      // 화면에 보여줄 H, L의 최대 개수 (각각)
+    const step = 4;          // 성능을 위해 4픽셀 단위로만 스캔
+
+    let potentialHighs = [];
+    let potentialLows = [];
+
+    // 2. 전체 그리드를 스캔하며 기준을 넘는 후보군을 모두 수집합니다.
+    for (let y = 0; y < h; y += step) {
+        for (let x = 0; x < w; x += step) {
+            const val = grid[y * w + x];
+            if (val > thresholdH) potentialHighs.push({ x, y, val });
+            if (val < thresholdL) potentialLows.push({ x, y, val });
+        }
+    }
+
+    // 3. 기압이 가장 센(높거나 낮은) 순서대로 정렬합니다.
+    potentialHighs.sort((a, b) => b.val - a.val); // 내림차순 (가장 높은 곳부터)
+    potentialLows.sort((a, b) => a.val - b.val);  // 오름차순 (가장 낮은 곳부터)
+
+    // 4. 거리를 계산하여 진짜 중심점만 걸러냅니다 (NMS 알고리즘)
+    let finalHighs = [];
+    for (let pt of potentialHighs) {
+        // 기존에 찾은 중심점들과 거리가 충분히 떨어져 있는지 확인
+        let isFarEnough = finalHighs.every(hPt => Math.hypot(pt.x - hPt.x, pt.y - hPt.y) > minDist);
+        if (isFarEnough) {
+            finalHighs.push(pt);
+            if (finalHighs.length >= maxCount) break; // 원하는 개수만큼 찾으면 중단
+        }
+    }
+
+    let finalLows = [];
+    for (let pt of potentialLows) {
+        let isFarEnough = finalLows.every(lPt => Math.hypot(pt.x - lPt.x, pt.y - lPt.y) > minDist);
+        if (isFarEnough) {
+            finalLows.push(pt);
+            if (finalLows.length >= maxCount) break;
+        }
+    }
+
+    // 5. 화면에 그리기
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // 고기압(H) 그리기
+    for (let pt of finalHighs) {
+        ctx.fillStyle = '#ff4d4d';
+        ctx.font = 'bold 26px Arial';
+        ctx.fillText('H', pt.x, pt.y);
+        ctx.font = '12px Arial';
+        ctx.fillText(Math.round(pt.val), pt.x, pt.y + 18);
+    }
+
+    // 저기압(L) 그리기
+    for (let pt of finalLows) {
+        ctx.fillStyle = '#3399ff';
+        ctx.font = 'bold 26px Arial';
+        ctx.fillText('L', pt.x, pt.y);
+        ctx.font = '12px Arial';
+        ctx.fillText(Math.round(pt.val), pt.x, pt.y + 18);
+    }
+}
+/**
+ * [신규] 그리드 전체에서 절대적인 최댓값(H)과 최솟값(L)을 찾아 한 개씩만 그리는 함수
+ */
+function drawSingleHighLow(ctx, grid, w, h) {
+    let maxP = -Infinity, minP = Infinity;
+    let maxCoord = { x: 0, y: 0 }, minCoord = { x: 0, y: 0 };
+
+    // 1. 전체 그리드를 순회하며 최댓값과 최솟값의 좌표를 찾습니다.
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            const val = grid[y * w + x];
+            if (val > maxP) {
+                maxP = val;
+                maxCoord = { x, y };
+            }
+            if (val < minP) {
+                minP = val;
+                minCoord = { x, y };
+            }
+        }
+    }
+
+    // 2. 화면에 그리기 설정
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 28px Arial'; // 글자 크기를 조금 더 크게
+
+    // 3. 고기압(H) 그리기
+    // 임계값 조건을 넣어서 너무 평범한 기압일 때는 안 나오게 할 수도 있습니다. (예: maxP > 1020)
+    ctx.fillStyle = '#ff4d4d'; // 진한 빨강
+    ctx.fillText('H', maxCoord.x, maxCoord.y);
+    // 기압 수치 표시 (H 바로 아래)
+    ctx.font = '12px Arial';
+    ctx.fillText(Math.round(maxP), maxCoord.x, maxCoord.y + 18);
+
+    // 4. 저기압(L) 그리기
+    ctx.font = 'bold 28px Arial';
+    ctx.fillStyle = '#3399ff'; // 진한 파랑
+    ctx.fillText('L', minCoord.x, minCoord.y);
+    // 기압 수치 표시 (L 바로 아래)
+    ctx.font = '12px Arial';
+    ctx.fillText(Math.round(minP), minCoord.x, minCoord.y + 18);
+}
+
+
+let lastTime = 0;
+function animate(time) {
+    if (!isPlaying) return;
+    
+    // 10분 간격이므로 프레임 전환 속도를 조금 더 빠르게 (0.05초)
+    if (time - lastTime > 50) { 
+        currentFrame = (currentFrame + 1) % grids.length;
+        slider.value = currentFrame;
+        renderFrame(currentFrame);
+        lastTime = time;
+    }
+    requestAnimationFrame(animate);
+}
+
+playBtn.onclick = () => {
+    isPlaying = !isPlaying;
+    playBtn.innerText = isPlaying ? "Pause" : "Play";
+    if (isPlaying) animate(performance.now());
+};
+
+slider.oninput = (e) => {
+    currentFrame = parseInt(e.target.value);
+    renderFrame(currentFrame);
+};
+
+init();
+</script>
+</body>
+</html>

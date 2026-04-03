@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>KIM 모델 등압선 시각화</title>
+    <style>
+        body { margin: 0; background: #333; color: white; font-family: sans-serif; overflow: hidden; }
+        #controls { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 8px; }
+        canvas { display: block; background: #e0f7fa; cursor: crosshair; }
+        .legend { margin-top: 10px; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+<div id="controls">
+    <h3>KIM Asia MSLP Visualization</h3>
+    <p>해상도: 1158 x 598 (약 70만 격자)</p>
+    <div id="status">데이터 로딩 중...</div>
+    <div class="legend">
+        <span style="color:red; font-weight:bold;">H</span>: 고기압 (> 1020hPa)<br>
+        <span style="color:blue; font-weight:bold;">L</span>: 저기압 (< 1000hPa)
+    </div>
+</div>
+
+<canvas id="mapCanvas"></canvas>
+
+<script>
+/**
+ * 설정값 (Python 변환 코드와 일치해야 함)
+ */
+const MIN_P = 900.0;
+const MAX_P = 1100.0;
+const PNG_URL = 'psl_easia.png'; // 변환한 PNG 파일 경로
+
+const canvas = document.getElementById('mapCanvas');
+const ctx = canvas.getContext('2d');
+const statusEl = document.getElementById('status');
+
+async function init() {
+    try {
+        // 1. 이미지 로드
+        const img = new Image();
+        img.src = PNG_URL;
+        await img.decode();
+
+        const width = img.width;
+        const height = img.height;
+        
+        // 캔버스 크기를 이미지에 맞춤 (또는 화면 비율에 맞춤)
+        canvas.width = width;
+        canvas.height = height;
+
+        // 2. 오프스크린 캔버스로 픽셀 데이터 추출
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = width;
+        offCanvas.height = height;
+        const offCtx = offCanvas.getContext('2d');
+        offCtx.drawImage(img, 0, 0);
+        
+        const imageData = offCtx.getImageData(0, 0, width, height).data;
+        const pressureGrid = new Float32Array(width * height);
+
+        // 3. 기압 복원 연산 (70만 개)
+        console.time('Recovery');
+        for (let i = 0; i < imageData.length; i += 4) {
+            const r = imageData[i]; 
+            pressureGrid[i / 4] = MIN_P + (r / 255) * (MAX_P - MIN_P);
+        }
+        console.timeEnd('Recovery');
+
+        statusEl.innerText = "시각화 렌더링 중...";
+
+        // 4. 그리기 실행
+        render(pressureGrid, width, height);
+        
+        statusEl.innerText = "렌더링 완료 (KIM Data)";
+
+    } catch (e) {
+        console.error(e);
+        statusEl.innerText = "에러: PNG 파일을 찾을 수 없거나 로드 실패";
+    }
+}
+
+function render(grid, w, h) {
+    // 배경 지형 대용 (실제로는 지도 레이어를 아래에 깔면 됨)
+    ctx.clearRect(0, 0, w, h);
+    
+    // --- 등압선 그리기 ---
+    console.time('Isobars');
+    ctx.lineWidth = 1;
+    
+    // 980hPa ~ 1040hPa까지 4hPa 간격
+    for (let target = 980; target <= 1040; target += 2) {
+        ctx.beginPath();
+        // 기압 수치에 따라 선 색상 변경 (저기압 파랑, 고기압 빨강 계열)
+        ctx.strokeStyle = target > 1013 ? 'rgba(150, 0, 0, 0.5)' : 'rgba(0, 0, 150, 0.5)';
+        
+        const step = 3; // 성능을 위해 2픽셀 단위로 검사 (보간 효과)
+        for (let y = 0; y < h - step; y += step) {
+            for (let x = 0; x < w - step; x += step) {
+                const val = grid[y * w + x];
+                
+                // 간단한 Threshold 검사 (더 매끄럽게 하려면 Marching Squares 필요)
+                if (Math.abs(val - target) < 0.6) {
+                    ctx.rect(x, y, 1.2, 1.2);
+                }
+            }
+        }
+        ctx.stroke();
+    }
+    console.timeEnd('Isobars');
+
+    // --- 고/저 기압 표시 ---
+    console.time('HighLow');
+    ctx.font = 'bold 20px Arial';
+    ctx.textAlign = 'center';
+    
+    const win = 60; // 탐색 윈도우 크기 (글자 겹침 방지)
+    for (let y = win; y < h - win; y += win) {
+        for (let x = win; x < w - win; x += win) {
+            const val = grid[y * w + x];
+            
+            // 극점 표시 (간이 로직)
+            if (val > 1024) {
+                ctx.fillStyle = 'red';
+                ctx.fillText('고', x, y);
+                ctx.font = '10px Arial';
+                ctx.fillText(Math.round(val), x, y + 12);
+                ctx.font = 'bold 20px Arial';
+            } else if (val < 996) {
+                ctx.fillStyle = 'blue';
+                ctx.fillText('저', x, y);
+                ctx.font = '10px Arial';
+                ctx.fillText(Math.round(val), x, y + 12);
+                ctx.font = 'bold 20px Arial';
+            }
+        }
+    }
+    console.timeEnd('HighLow');
+}
+
+init();
+</script>
+</body>
+</html>

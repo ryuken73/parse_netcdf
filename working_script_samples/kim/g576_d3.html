@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>KIM 모델 d3-contour 시각화</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body { margin: 0; background: #222; color: white; font-family: sans-serif; }
+        #controls { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; pointer-events: none; }
+        canvas { display: block; background: #1a1a1a; }
+        .info { font-size: 12px; color: #aaa; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div id="controls">
+    <h3>KIM MSLP (d3-contour)</h3>
+    <div id="status">데이터 분석 중...</div>
+    <div class="info">D3 알고리즘 기반 벡터 등압선 렌더링</div>
+</div>
+
+<canvas id="mapCanvas"></canvas>
+
+<script>
+const MIN_P = 900.0;
+const MAX_P = 1100.0;
+const PNG_URL = 'psl_easia.png';
+
+const canvas = document.getElementById('mapCanvas');
+const ctx = canvas.getContext('2d');
+
+async function init() {
+    const img = new Image();
+    img.src = PNG_URL;
+    await img.decode();
+
+    const w = img.width;
+    const h = img.height;
+    canvas.width = w;
+    canvas.height = h;
+
+    // 1. 픽셀 데이터 추출
+    const off = new OffscreenCanvas(w, h);
+    const oCtx = off.getContext('2d');
+    oCtx.drawImage(img, 0, 0);
+    const pixels = oCtx.getImageData(0, 0, w, h).data;
+
+    // 2. 1차원 기압 배열 생성 (D3 입력용)
+    const step = 4
+    const grid = new Float32Array(w * h);
+    for (let i = 0; i < pixels.length; i += step) {
+        grid[i / step] = MIN_P + (pixels[i] / 255) * (MAX_P - MIN_P);
+    }
+
+    // 3. D3 Contour 생성기 설정
+    // d3.contours()는 [width, height] 크기의 1차원 배열을 입력으로 받습니다.
+    const contours = d3.contours()
+        .size([w, h])
+        .smooth(true); // 매끄러운 곡선 보간 활성화
+
+    document.getElementById('status').innerText = "벡터 경로 계산 중...";
+
+    // 4. 렌더링 루프
+    console.time('D3-Render');
+    
+    // 980hPa ~ 1040hPa 범위, 4hPa 간격
+    const thresholds = d3.range(980, 1044, 2);
+    
+    // 배경 지도 대신 그라데이션 효과 (옵션)
+    ctx.fillStyle = "#1a1a1a";
+    ctx.fillRect(0, 0, w, h);
+
+    // Canvas 전용 경로 생성기 (D3 GeoPath)
+    const pathGenerator = d3.geoPath(null, ctx);
+
+    thresholds.forEach(t => {
+        const contourData = contours.thresholds([t])(grid)[0];
+        
+        ctx.beginPath();
+        pathGenerator(contourData); // D3가 계산한 기하학적 경로를 Canvas에 그림
+        
+        // 스타일 설정
+        ctx.strokeStyle = t > 1013 ? '#ff4d4d' : '#4d94ff';
+        ctx.lineWidth = 1.2;
+        ctx.globalAlpha = 0.7;
+        ctx.stroke();
+
+        // 등압선 수치 표시 (일정 간격마다)
+        if (contourData.coordinates.length > 0) {
+            drawLabel(ctx, contourData, t);
+        }
+    });
+    
+    console.timeEnd('D3-Render');
+    drawHighLow(ctx, grid, w, h);
+    document.getElementById('status').innerText = "시각화 완료";
+}
+
+// 선 중간에 기압 수치(Label) 적기
+function drawLabel(ctx, contour, val) {
+    // 첫 번째 폴리곤의 첫 번째 좌표 근처에 텍스트 배치
+    const coords = contour.coordinates[0][0][0]; 
+    if (coords) {
+        ctx.fillStyle = "rgba(255,255,255,0.5)";
+        ctx.font = "10px Arial";
+        ctx.fillText(Math.round(val), coords[0], coords[1]);
+    }
+}
+
+function drawHighLow(ctx, grid, w, h) {
+    const step = 80; // 탐색 범위
+    ctx.textAlign = 'center';
+    for (let y = step; y < h - step; y += step) {
+        for (let x = step; x < w - step; x += step) {
+            const val = grid[y * w + x];
+            if (val > 1024) {
+                ctx.fillStyle = '#ff4d4d';
+                ctx.font = 'bold 18px Arial';
+                ctx.fillText('H', x, y);
+            } else if (val < 1000) {
+                ctx.fillStyle = '#4d94ff';
+                ctx.font = 'bold 18px Arial';
+                ctx.fillText('L', x, y);
+            }
+        }
+    }
+}
+
+init();
+</script>
+</body>
+</html>
