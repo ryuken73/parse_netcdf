@@ -12,6 +12,7 @@ class Config:
   OUT_PATH_RDR = os.getenv("OUT_PATH_RDR")
   OUT_PATH_AWS = os.getenv("OUT_PATH_AWS")
   OUT_PATH_WIND = os.getenv("OUT_PATH_WIND")
+  OUT_PATH_KIM = os.getenv("OUT_PATH_KIM")
   WATCH_PATH = os.getenv("WATCH_PATH")
   WATCH_PATH_RDR = os.getenv("WATCH_PATH_RDR")
   WATCH_PATH_AWS = os.getenv("WATCH_PATH_AWS")
