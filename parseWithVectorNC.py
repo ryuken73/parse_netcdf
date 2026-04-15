@@ -318,25 +318,25 @@ def generate_image_from_data_fast(data, output_path, image_size=(600, 520), boun
     print('sample of image_dat:', image_data[600:800])
     print('shape and size of image_dat:', image_data.shape, image_data.size, image_data.dtype)
 
-    # 중심 좌표 계산
-    center_x = width / 2
-    center_y = height / 2
+    # # 중심 좌표 계산
+    # center_x = width / 2
+    # center_y = height / 2
 
-    # y, x 그리드 생성
-    Y_idx, X_idx = np.ogrid[:height, :width]
+    # # y, x 그리드 생성
+    # Y_idx, X_idx = np.ogrid[:height, :width]
 
-    # 중심으로부터의 거리 계산
-    dist_from_center = np.sqrt((X_idx - center_x)**2 + (Y_idx - center_y)**2)
-    max_dist = np.sqrt(center_x**2 + center_y**2)
+    # # 중심으로부터의 거리 계산
+    # dist_from_center = np.sqrt((X_idx - center_x)**2 + (Y_idx - center_y)**2)
+    # max_dist = np.sqrt(center_x**2 + center_y**2)
 
-    # 감쇠 곡선 생성 (가장자리로 갈수록 0에 가까워짐)
-    # 1.5 같은 지수(power) 값을 조절하여 페이드아웃이 시작되는 지점을 컨트롤할 수 있습니다.
-    falloff = 1.0 - (dist_from_center / max_dist)**1.5
-    falloff = np.clip(falloff, 0, 1)
+    # # 감쇠 곡선 생성 (가장자리로 갈수록 0에 가까워짐)
+    # # 1.5 같은 지수(power) 값을 조절하여 페이드아웃이 시작되는 지점을 컨트롤할 수 있습니다.
+    # falloff = 1.0 - (dist_from_center / max_dist)**1.5
+    # falloff = np.clip(falloff, 0, 1)
 
-    # Alpha 채널(index 3)에 감쇠율 곱하기
-    # 구름이 중심부에서는 선명하고, 외곽으로 갈수록 대기에 섞이는 것처럼 투명해집니다.
-    image_data[:, :, 3] = (image_data[:, :, 3] * falloff).astype(np.uint8)
+    # # Alpha 채널(index 3)에 감쇠율 곱하기
+    # # 구름이 중심부에서는 선명하고, 외곽으로 갈수록 대기에 섞이는 것처럼 투명해집니다.
+    # image_data[:, :, 3] = (image_data[:, :, 3] * falloff).astype(np.uint8)
 
     # PNG 저장
     image = Image.fromarray(image_data.astype(np.uint8), 'RGBA')
