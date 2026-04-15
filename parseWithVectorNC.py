@@ -298,7 +298,7 @@ def generate_image_from_data_fast(data, output_path, image_size=(600, 520), boun
 
     # 색상 매핑을 위한 벡터화 함수
     def apply_color_mapping(values):
-        factor = 5  # 밝기 조절 인자 (1~10)
+        factor = 10  # 밝기 조절 인자 (1~10)
         colors = np.zeros((height, width, 4), dtype=np.uint8)
         flat_values = values.flatten()
         # global flat_colors
