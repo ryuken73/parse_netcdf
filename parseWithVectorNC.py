@@ -159,7 +159,7 @@ def get_color_from_temperature(temp):
     alpha = (20 - temp) * (255 / 40) if temp > -20 else 255
     return [r, g, b, alpha]
 
-def get_mono_color_from_temperature(value, factor=5):
+def get_mono_color_from_temperature_old_0415(value, factor=5):
     if value == -9999:
         return [0, 0, 0, 0]  # 투명
     
@@ -179,6 +179,40 @@ def get_mono_color_from_temperature(value, factor=5):
     b = int(min(255 * base_b * brightness_boost, 255))
     alpha = int(min(255 * (base_r+base_g+base_b)/3 * brightness_boost, 255))
     # alpha = int(min(255 * (r+g+b)/3 * brightness_boost, 255))
+    return [r, g, b, alpha]  # RGBA
+
+# 수정된 함수: 포화된 흰색 영역의 디테일을 살리기 위해 비선형 스케일링(stretch) 적용
+def get_mono_color_from_temperature(value, factor=5):
+    if value == -9999:
+        return [0, 0, 0, 0]  # 투명
+    
+    # 1. 온도 범위 설정
+    t_min, t_max = -100, 30
+    
+    # 2. 선형 매핑 비율 계산 (0.0 ~ 1.0)
+    # 기존 코드와 동일
+    ratio_orig = min(max((value - t_min) / (t_max - t_min), 0), 1)
+    
+    # 3. 포화된 흰색 영역의 디테일을 살리기 위해 비선형 스케일링(stretch) 적용
+    # stretch_gamma 값이 클수록 낮은 온도가 더 어둡게(회색조로) 매핑되어 디테일이 살아납니다.
+    # 기존 'brightness_boost' 논리를 제거하고, factor를 stretch_gamma로 활용합니다.
+    # factor가 1일 때는 원래의 선형 매핑(포화 많음)이 되고, factor가 클수록 디테일이 살아납니다.
+    # factor 값을 조절하여 원하는 디테일 수준을 찾으세요. (예: 5~8 범위 추천)
+    # 아래 수식은 factor 1 -> gamma 1.0, factor 5 -> gamma 1.4, factor 10 -> gamma 1.9가 됩니다.
+    stretch_gamma = 1.0 + (factor - 1) * 0.1
+    ratio_stretched = ratio_orig**stretch_gamma
+    
+    # 4. 기본 밝기 계산 (비선형 ratio 적용, 밝기 반전)
+    base_r = (1 - ratio_stretched)  # 0.0 ~ 1.0
+    
+    # 5. 최종 밝기 계산 및 클램핑
+    # 기존 brightness_boost는 포화를 유발하므로 제거하고, stretch_gamma를 통해 디테일과 밝기 스케일을 동시에 조절합니다.
+    # stretch_gamma가 1보다 크기 때문에 낮은 온도 영역의 밝기가 255보다 낮아져 회색조로 보이게 됩니다.
+    r = int(min(255 * base_r, 255))
+    g = int(min(255 * base_r, 255))
+    b = int(min(255 * base_r, 255))
+    alpha = int(min(255 * base_r, 255))
+    
     return [r, g, b, alpha]  # RGBA
 
 def get_mono_color_from_temperature_old(value):
@@ -242,13 +276,34 @@ def generate_image_from_data_fast(data, output_path, image_size=(600, 520), boun
     print('grid_values sample:', grid_values[:5])
     print("Image pixel values 범위:", np.min(grid_values), "to", np.max(grid_values))
 
+    # 1. 값이 없는 픽셀(-9999)을 나타내는 마스크 생성
+    empty_mask = (grid_values == -9999).astype(np.uint8)
+
+    # 2. OpenCV의 inpaint 처리를 위해 grid_values를 임시로 정규화하거나, 
+    # 가장 간단한 방법인 Nearest Neighbor 기반의 Dilate(팽창) 연산을 적용하여 구멍을 메움
+    valid_mask = 1 - empty_mask
+    if np.any(empty_mask):
+        # 빈 공간의 거리를 계산하여 가장 가까운 유효 픽셀의 인덱스를 찾음
+        from scipy.ndimage import distance_transform_edt
+        
+        # 거리 변환을 통해 가장 가까운 유효 픽셀의 위치를 추적
+        distances, indices = distance_transform_edt(empty_mask, return_indices=True)
+        
+        # 빈 공간을 가장 가까운 유효 데이터로 채움
+        grid_values = grid_values[tuple(indices)]
+        
+        # 원래 데이터가 전혀 없었던 완전한 외곽(우주 영역 등)은 다시 -9999로 덮어쓰기 위해
+        # (선택 사항) 거리가 너무 먼 곳은 채우지 않도록 임계값 설정
+        grid_values[distances > 10] = -9999
+
     # 색상 매핑을 위한 벡터화 함수
     def apply_color_mapping(values):
+        factor = 5  # 밝기 조절 인자 (1~10)
         colors = np.zeros((height, width, 4), dtype=np.uint8)
         flat_values = values.flatten()
         # global flat_colors
         if color_mode == 'gray': 
-          flat_colors = np.array([get_mono_color_from_temperature(val) if val != -9999 else [0, 0, 0, 0] 
+          flat_colors = np.array([get_mono_color_from_temperature(val, factor) if val != -9999 else [0, 0, 0, 0] 
                                 for val in flat_values]) 
         else: 
           flat_colors = np.array([get_color_from_temperature(val) if val != -9999 else [0, 0, 0, 0] 
@@ -262,6 +317,26 @@ def generate_image_from_data_fast(data, output_path, image_size=(600, 520), boun
     print('sample of image_dat:', image_data[:100])
     print('sample of image_dat:', image_data[600:800])
     print('shape and size of image_dat:', image_data.shape, image_data.size, image_data.dtype)
+
+    # 중심 좌표 계산
+    center_x = width / 2
+    center_y = height / 2
+
+    # y, x 그리드 생성
+    Y_idx, X_idx = np.ogrid[:height, :width]
+
+    # 중심으로부터의 거리 계산
+    dist_from_center = np.sqrt((X_idx - center_x)**2 + (Y_idx - center_y)**2)
+    max_dist = np.sqrt(center_x**2 + center_y**2)
+
+    # 감쇠 곡선 생성 (가장자리로 갈수록 0에 가까워짐)
+    # 1.5 같은 지수(power) 값을 조절하여 페이드아웃이 시작되는 지점을 컨트롤할 수 있습니다.
+    falloff = 1.0 - (dist_from_center / max_dist)**1.5
+    falloff = np.clip(falloff, 0, 1)
+
+    # Alpha 채널(index 3)에 감쇠율 곱하기
+    # 구름이 중심부에서는 선명하고, 외곽으로 갈수록 대기에 섞이는 것처럼 투명해집니다.
+    image_data[:, :, 3] = (image_data[:, :, 3] * falloff).astype(np.uint8)
 
     # PNG 저장
     image = Image.fromarray(image_data.astype(np.uint8), 'RGBA')
