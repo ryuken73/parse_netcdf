@@ -318,6 +318,35 @@ def generate_image_from_data_fast(data, output_path, image_size=(600, 520), boun
     print('sample of image_dat:', image_data[600:800])
     print('shape and size of image_dat:', image_data.shape, image_data.size, image_data.dtype)
 
+    # --- [추가된 부분: 외곽 경계면 점진적 페이드아웃 (Fade-out)] ---
+    # 1. 최종 유효 데이터 영역 마스크 생성 (빈 공간 -9999가 아닌 곳)
+    final_valid_mask = (grid_values != -9999).astype(np.uint8)
+
+    # 2. 유효 데이터 내부에서, 가장 가까운 '바깥(데이터 없는 곳)'까지의 거리 계산
+    from scipy.ndimage import distance_transform_edt
+    dist_from_edge = distance_transform_edt(final_valid_mask)
+
+    # 3. 데이터 중심부(가장 깊은 곳)까지의 최대 거리 계산
+    max_dist_inside = np.max(dist_from_edge)
+
+    # 4. 페이드아웃을 적용할 외곽 두께 설정 (현재 중심까지 거리의 10% = 0.1)
+    # 더 넓은 영역부터 서서히 지우려면 이 값을 0.15나 0.2로 올려주세요.
+    fade_thickness = max_dist_inside * 0.1
+
+    # 5. Alpha(불투명도) 배율 매트릭스 생성 (기본값 1.0 = 100% 불투명)
+    alpha_mult = np.ones((height, width), dtype=np.float32)
+
+    # 거리가 0보다 크고(유효데이터), 페이드 두께보다 작은 가장자리 영역만 필터링
+    fade_zone = (dist_from_edge > 0) & (dist_from_edge < fade_thickness)
+
+    # 가장자리로 갈수록(거리가 0에 가까워질수록) alpha 배율이 0에 가까워지도록 비율 계산 (0.0 ~ 1.0)
+    # ** 1.5 제곱을 해주는 이유는 선형적으로 투명해지는 것보다 곡선 형태로 투명해져야 훨씬 자연스럽기 때문입니다.
+    alpha_mult[fade_zone] = (dist_from_edge[fade_zone] / fade_thickness) ** 1.5
+
+    # 6. 원본 이미지의 Alpha 채널(index 3)에 계산된 투명도 배율 곱하기
+    image_data[:, :, 3] = (image_data[:, :, 3] * alpha_mult).astype(np.uint8)
+    # ----------------------------------------------------------------
+
     # # 중심 좌표 계산
     # center_x = width / 2
     # center_y = height / 2
