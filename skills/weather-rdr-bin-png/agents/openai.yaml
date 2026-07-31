@@ -1,0 +1,4 @@
+interface:
+  display_name: "Weather RDR Bin PNG"
+  short_description: "기상청 RDR binary PNG 변환"
+  default_prompt: "$weather-rdr-bin-png을 사용해서 기상청 RDR binary-to-PNG 파이프라인을 점검하거나 수정한다."
