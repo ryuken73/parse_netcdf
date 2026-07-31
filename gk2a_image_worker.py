@@ -99,7 +99,7 @@ def is_processed(nc_file):
     return all(path.exists() and path.stat().st_size > 0 for path in expected_outputs(nc_file))
 
 
-def process_file(nc_file):
+def process_file(nc_file, compare_alpha=False):
     # Import heavy NetCDF/GDAL dependencies only in the per-file worker process.
     from parseWithVectorNC import (
         generate_image_from_data_fast,
@@ -131,10 +131,26 @@ def process_file(nc_file):
     if parse_result is None or len(parse_result) == 0:
         raise RuntimeError(f"No parsed data returned for {nc_file}")
 
-    high_quality_image_name_mono = str(save_dir / f"{Path(out_file).stem}_mono.png")
-    high_quality_image_name_color = str(save_dir / f"{Path(out_file).stem}_color.png")
     image_size = IMAGE_SIZE[nc_coverage][highest_step]
     bounds = BOUNDS[nc_coverage]
+
+    if compare_alpha:
+        for gray_alpha_mode in ("A", "B", "C"):
+            output_image = str(save_dir / f"{Path(out_file).stem}_mono_{gray_alpha_mode}.png")
+            generate_image_from_data_fast(
+                parse_result,
+                output_image,
+                image_size,
+                bounds,
+                color_mode="gray",
+                gray_alpha_mode=gray_alpha_mode,
+            )
+            print(f"saved comparison image[mono {gray_alpha_mode}]: {output_image}", flush=True)
+        print(f"completed alpha comparison for {nc_file}", flush=True)
+        return
+
+    high_quality_image_name_mono = str(save_dir / f"{Path(out_file).stem}_mono.png")
+    high_quality_image_name_color = str(save_dir / f"{Path(out_file).stem}_color.png")
 
     generate_image_from_data_fast(
         parse_result,
@@ -278,14 +294,22 @@ def parse_args():
         action="store_true",
         help="In batch mode, process all files instead of only files with missing outputs",
     )
+    parser.add_argument(
+        "--compare-alpha",
+        action="store_true",
+        help="For --file only, generate step1 Mercator mono A/B/C comparison PNGs",
+    )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
     if args.file:
-        process_file(args.file)
+        process_file(args.file, compare_alpha=args.compare_alpha)
         return 0
+
+    if args.compare_alpha:
+        raise SystemExit("--compare-alpha can only be used together with --file")
 
     return run_batch(
         args.batch,

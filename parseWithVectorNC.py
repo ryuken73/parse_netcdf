@@ -227,7 +227,14 @@ def get_mono_color_from_temperature_old(value):
     b = int(255 * (1 - ratio))
     return [r, g, b, 255]  # RGBA
 
-def generate_image_from_data_fast(data, output_path, image_size=(600, 520), bounds=[60, -80, 180, 80], color_mode="gray"):
+def generate_image_from_data_fast(
+    data,
+    output_path,
+    image_size=(600, 520),
+    bounds=[60, -80, 180, 80],
+    color_mode="gray",
+    gray_alpha_mode="A",
+):
     """
     NumPy 배열 [[lon, lat, value], ...] 데이터를 Web Mercator 투영으로 이미지 변환.
     """
@@ -302,9 +309,29 @@ def generate_image_from_data_fast(data, output_path, image_size=(600, 520), boun
         colors = np.zeros((height, width, 4), dtype=np.uint8)
         flat_values = values.flatten()
         # global flat_colors
-        if color_mode == 'gray': 
-          flat_colors = np.array([get_mono_color_from_temperature(val, factor) if val != -9999 else [0, 0, 0, 0] 
-                                for val in flat_values]) 
+        if color_mode == 'gray':
+          if gray_alpha_mode not in ("A", "B", "C"):
+              raise ValueError(f"Unsupported gray alpha mode: {gray_alpha_mode}")
+
+          mono_colors = np.array([
+              get_mono_color_from_temperature(val, factor) if val != -9999 else [0, 0, 0, 0]
+              for val in flat_values
+          ], dtype=np.uint8)
+
+          if gray_alpha_mode == "A":
+              # 현재 방식: RGB와 alpha 모두 intensity 사용
+              flat_colors = mono_colors
+          elif gray_alpha_mode == "B":
+              # 비교안 B: intensity는 RGB에만 적용하고 유효 픽셀은 불투명 처리
+              flat_colors = mono_colors
+              flat_colors[flat_values != -9999, 3] = 255
+          else:
+              # 비교안 C: 흰색 RGB에 intensity를 alpha로 적용
+              intensity = mono_colors[:, 0].copy()
+              flat_colors = np.zeros_like(mono_colors)
+              valid = flat_values != -9999
+              flat_colors[valid, :3] = 255
+              flat_colors[valid, 3] = intensity[valid]
         else: 
           flat_colors = np.array([get_color_from_temperature(val) if val != -9999 else [0, 0, 0, 0] 
                                 for val in flat_values])
