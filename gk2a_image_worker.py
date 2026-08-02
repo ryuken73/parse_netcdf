@@ -99,7 +99,7 @@ def is_processed(nc_file):
     return all(path.exists() and path.stat().st_size > 0 for path in expected_outputs(nc_file))
 
 
-def process_file(nc_file, compare_alpha=False):
+def process_file(nc_file, compare_alpha=False, mono_alpha_mode="A"):
     # Import heavy NetCDF/GDAL dependencies only in the per-file worker process.
     from parseWithVectorNC import (
         generate_image_from_data_fast,
@@ -158,8 +158,12 @@ def process_file(nc_file, compare_alpha=False):
         image_size,
         bounds,
         color_mode="gray",
+        gray_alpha_mode=mono_alpha_mode,
     )
-    print("saved high quality image[mono]:", high_quality_image_name_mono, flush=True)
+    print(
+        f"saved high quality image[mono mode={mono_alpha_mode}]: {high_quality_image_name_mono}",
+        flush=True,
+    )
 
     generate_image_from_data_fast(
         parse_result,
@@ -213,8 +217,15 @@ def discover_batch_files(batch_root, pending_only=True):
     return selected
 
 
-def run_worker_subprocess(nc_file, retry_count, retry_delay):
-    cmd = [sys.executable, str(APP_DIR / "gk2a_image_worker.py"), "--file", str(nc_file)]
+def run_worker_subprocess(nc_file, retry_count, retry_delay, mono_alpha_mode):
+    cmd = [
+        sys.executable,
+        str(APP_DIR / "gk2a_image_worker.py"),
+        "--file",
+        str(nc_file),
+        "--mono-alpha-mode",
+        mono_alpha_mode,
+    ]
     env = os.environ.copy()
     cwd = str(APP_DIR)
 
@@ -229,7 +240,7 @@ def run_worker_subprocess(nc_file, retry_count, retry_delay):
     return result.returncode
 
 
-def run_batch(batch_root, max_workers, retry_count, retry_delay, pending_only):
+def run_batch(batch_root, max_workers, retry_count, retry_delay, pending_only, mono_alpha_mode):
     max_workers = max(1, max_workers)
     files = discover_batch_files(batch_root, pending_only=pending_only)
     print(f"batch candidates: {len(files)}", flush=True)
@@ -239,7 +250,13 @@ def run_batch(batch_root, max_workers, retry_count, retry_delay, pending_only):
     failed = []
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
-            executor.submit(run_worker_subprocess, nc_file, retry_count, retry_delay): nc_file
+            executor.submit(
+                run_worker_subprocess,
+                nc_file,
+                retry_count,
+                retry_delay,
+                mono_alpha_mode,
+            ): nc_file
             for nc_file in files
         }
         for future in as_completed(futures):
@@ -299,13 +316,26 @@ def parse_args():
         action="store_true",
         help="For --file only, generate step1 Mercator mono A/B/C comparison PNGs",
     )
+    parser.add_argument(
+        "--mono-alpha-mode",
+        choices=("A", "B", "C"),
+        default=os.getenv("GK2A_MONO_ALPHA_MODE", "A").upper(),
+        help=(
+            "Mono PNG encoding mode (default: GK2A_MONO_ALPHA_MODE or A). "
+            "C writes white RGB with IR intensity in alpha."
+        ),
+    )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
     if args.file:
-        process_file(args.file, compare_alpha=args.compare_alpha)
+        process_file(
+            args.file,
+            compare_alpha=args.compare_alpha,
+            mono_alpha_mode=args.mono_alpha_mode,
+        )
         return 0
 
     if args.compare_alpha:
@@ -317,6 +347,7 @@ def main():
         retry_count=args.retry_count,
         retry_delay=args.retry_delay,
         pending_only=not args.force,
+        mono_alpha_mode=args.mono_alpha_mode,
     )
 
 

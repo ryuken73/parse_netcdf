@@ -16,17 +16,29 @@ config = get_config()
 MAX_WORKERS = max(1, int(os.getenv("GK2A_IMAGE_MAX_WORKERS", "2")))
 RETRY_COUNT = int(os.getenv("GK2A_IMAGE_RETRY_COUNT", "1"))
 RETRY_DELAY = float(os.getenv("GK2A_IMAGE_RETRY_DELAY", "30"))
+MONO_ALPHA_MODE = os.getenv("GK2A_MONO_ALPHA_MODE", "A").upper()
+
+if MONO_ALPHA_MODE not in ("A", "B", "C"):
+    raise ValueError(f"Unsupported GK2A_MONO_ALPHA_MODE: {MONO_ALPHA_MODE}")
 
 print(f"Running in {config.ENV} mode")
 print(f"OUT_PATH = {config.OUT_PATH}")
 print(f"WATCH_PATH = {config.WATCH_PATH}")
 print(f"GK2A_IMAGE_MAX_WORKERS = {MAX_WORKERS}")
+print(f"GK2A_MONO_ALPHA_MODE = {MONO_ALPHA_MODE}")
 
 executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
 
 def run_worker_once(nc_file):
-    cmd = [sys.executable, str(WORKER_SCRIPT), "--file", str(nc_file)]
+    cmd = [
+        sys.executable,
+        str(WORKER_SCRIPT),
+        "--file",
+        str(nc_file),
+        "--mono-alpha-mode",
+        MONO_ALPHA_MODE,
+    ]
     return subprocess.run(cmd, cwd=str(APP_DIR), env=os.environ.copy()).returncode
 
 
